@@ -29,7 +29,7 @@ def test_all_dashboard_cards_execute(mb):
 
 
 def test_metadata_refreshes_succeed(mb):
-    for name in ("gizmo", "flight"):
+    for name in ("gizmo",):
         db = mb.databases()[name]
         _, before = mb.get(f"/api/database/{db['id']}/metadata")
         n_before = len(before.get("tables") or [])

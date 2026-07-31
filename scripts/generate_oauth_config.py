@@ -5,8 +5,8 @@
   tokens with a key we know BEFORE Keycloak ever boots), and the certificate
   is handed to GizmoSQL for JWT signature verification
   (TOKEN_SIGNATURE_VERIFY_CERT_PATH) — no startup-order coupling.
-- realm.json : Keycloak realm `flightsql` with two client-credentials
-  clients: flightsql-m2m (role=admin claim) and flightsql-readonly
+- realm.json : Keycloak realm `gizmosql` with two client-credentials
+  clients: gizmosql-m2m (role=admin claim) and gizmosql-readonly
   (role=readonly claim), both with an audience mapper adding `gizmosql`.
 
 Usage: python scripts/generate_oauth_config.py   (requires openssl on PATH)
@@ -34,7 +34,7 @@ if not KEY.exists():
     run("openssl", "genpkey", "-algorithm", "RSA",
         "-pkeyopt", "rsa_keygen_bits:2048", "-out", str(KEY))
     run("openssl", "req", "-new", "-x509", "-key", str(KEY), "-out", str(CERT),
-        "-days", "825", "-subj", "/CN=flightsql-token-signing")
+        "-days", "825", "-subj", "/CN=gizmosql-token-signing")
     os.chmod(KEY, 0o644)
     os.chmod(CERT, 0o644)
     print("generated signing keypair")
@@ -81,12 +81,12 @@ def client(client_id, secret, role):
 
 
 realm = {
-    "realm": "flightsql",
+    "realm": "gizmosql",
     "enabled": True,
     "accessTokenLifespan": 3600,
     "clients": [
-        client("flightsql-m2m", "m2m-demo-secret-0123456789", "admin"),
-        client("flightsql-readonly", "readonly-demo-secret-0123456789", "readonly"),
+        client("gizmosql-m2m", "m2m-demo-secret-0123456789", "admin"),
+        client("gizmosql-readonly", "readonly-demo-secret-0123456789", "readonly"),
     ],
     "components": {
         "org.keycloak.keys.KeyProvider": [
@@ -109,4 +109,4 @@ realm = {
 
 (OAUTH / "realm.json").write_text(json.dumps(realm, indent=2))
 print(f"wrote {OAUTH / 'realm.json'}")
-print("clients: flightsql-m2m (role=admin), flightsql-readonly (role=readonly); audience=gizmosql")
+print("clients: gizmosql-m2m (role=admin), gizmosql-readonly (role=readonly); audience=gizmosql")

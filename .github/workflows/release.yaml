@@ -1,0 +1,145 @@
+name: Release Metabase GizmoSQL Driver
+
+# Releases are cut by pushing a vX.Y.Z tag (release flow: update CHANGELOG +
+# bump version.txt -> commit -> `git push origin main vX.Y.Z`). Main pushes
+# only run CI checks (build.yaml).
+on:
+  push:
+    tags: [ 'v*.*.*' ]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing vX.Y.Z tag to (re)release
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # One build per supported Metabase release line. Keep in sync with
+        # build.yaml and the compatibility table in README.md.
+        metabase-ref: [ v0.62.5, v0.63.1.6 ]
+
+    steps:
+    - name: Clone Metabase repository
+      uses: actions/checkout@v7
+      with:
+        repository: metabase/metabase
+        ref: ${{ matrix.metabase-ref }}
+        path: metabase
+
+    - name: Checkout driver code
+      uses: actions/checkout@v7
+      with:
+        ref: ${{ github.event.inputs.tag || github.ref }}
+        path: metabase/modules/drivers/gizmosql
+
+    - name: Register gizmosql as the only driver module
+      working-directory: ./metabase
+      run: |
+        echo '{:deps {metabase/gizmosql {:local/root "gizmosql"}}}' > modules/drivers/deps.edn
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v5
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v7
+      with:
+        node-version: 'lts/*'
+
+    - name: Install Yarn 1.x
+      run: npm install -g yarn@1
+
+    - name: Set up Clojure
+      uses: DeLaGuardo/setup-clojure@13.6
+      with:
+        cli: 1.12.0.1479
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Cache Maven + gitlibs
+      uses: actions/cache@v6
+      with:
+        path: |
+          ~/.m2/repository
+          ~/.gitlibs
+        key: ${{ runner.os }}-driver-${{ matrix.metabase-ref }}-${{ hashFiles('metabase/modules/drivers/gizmosql/deps.edn', 'metabase/deps.edn') }}
+        restore-keys: |
+          ${{ runner.os }}-driver-${{ matrix.metabase-ref }}-
+
+    - name: Build driver
+      working-directory: ./metabase
+      run: |
+        chmod +x ./bin/build-driver.sh
+        ./bin/build-driver.sh gizmosql
+
+    - name: Rename jar per Metabase line
+      run: |
+        MB_LINE=$(echo "${{ matrix.metabase-ref }}" | sed -E 's/^v0\.([0-9]+).*/mb\1/')
+        mkdir -p out
+        cp metabase/resources/modules/gizmosql.metabase-driver.jar \
+           "out/gizmosql.metabase-driver-${MB_LINE}.jar"
+
+    - name: Upload driver artifact
+      uses: actions/upload-artifact@v7
+      with:
+        name: release-jar-${{ matrix.metabase-ref }}
+        path: out/*.jar
+        if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout driver code
+      uses: actions/checkout@v7
+      with:
+        ref: ${{ github.event.inputs.tag || github.ref }}
+
+    - name: Resolve version
+      id: version
+      run: |
+        TAG="${{ github.event.inputs.tag || github.ref_name }}"
+        VER="${TAG#v}"
+        echo "tag=$TAG"  >> "$GITHUB_OUTPUT"
+        echo "version=$VER" >> "$GITHUB_OUTPUT"
+        if [ "$(cat version.txt)" != "$VER" ]; then
+          echo "::error::version.txt ($(cat version.txt)) does not match tag $TAG"
+          exit 1
+        fi
+
+    - name: Extract CHANGELOG section for release notes
+      run: |
+        VER="${{ steps.version.outputs.version }}"
+        awk -v ver="$VER" '
+          $0 ~ "^## \\[" ver "\\]" { found=1; next }
+          found && /^## \[/ { exit }
+          found { print }
+        ' CHANGELOG.md > release-notes.md
+        if ! [ -s release-notes.md ]; then
+          echo "::error::No CHANGELOG.md section found for $VER"
+          exit 1
+        fi
+        cat release-notes.md
+
+    - name: Download built jars
+      uses: actions/download-artifact@v8
+      with:
+        pattern: release-jar-*
+        merge-multiple: true
+        path: out
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v3
+      with:
+        tag_name: ${{ steps.version.outputs.tag }}
+        name: ${{ steps.version.outputs.tag }}
+        body_path: release-notes.md
+        files: out/*.jar

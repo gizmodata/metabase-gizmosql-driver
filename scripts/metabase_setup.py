@@ -4,7 +4,7 @@ Metabase Automated Setup and Testing Script
 
 This script automates:
 1. Initial Metabase setup (admin user creation)
-2. Database connection creation (GizmoSQL and Spice)
+2. Database connection creation (GizmoSQL)
 3. API key generation
 4. Comprehensive dashboard creation with field filters and multiple chart types
 5. Both native SQL and GUI-based queries for driver stress testing
@@ -28,7 +28,7 @@ class MetabaseConfig:
     admin_password: str = "Metabase123!"
     admin_first_name: str = "Admin"
     admin_last_name: str = "User"
-    site_name: str = "Metabase FlightSQL Test"
+    site_name: str = "Metabase GizmoSQL Test"
 
 
 class MetabaseClient:
@@ -305,29 +305,13 @@ class MetabaseClient:
         """Create GizmoSQL database connection"""
         return self.create_database(
             name="gizmo",
-            engine="arrow-flight-sql",
+            engine="gizmosql",
             details={
                 "host": host,
                 "port": port,
                 "username": username,
                 "password": password,
                 "catalog": catalog,
-                "useEncryption": False,
-                "disableCertificateVerification": True
-            }
-        )
-
-    def create_spice_connection(self, host: str = "spiced-container",
-                                 port: int = 50051,
-                                 token: str = "1234567890") -> Optional[Dict]:
-        """Create Spice database connection"""
-        return self.create_database(
-            name="flight",
-            engine="arrow-flight-sql",
-            details={
-                "host": host,
-                "port": port,
-                "token": token,
                 "useEncryption": False,
                 "disableCertificateVerification": True
             }
@@ -1377,7 +1361,7 @@ def create_comprehensive_dashboard(client: MetabaseClient, gizmo_db_id: int) -> 
         })
 
     dashboard = client.create_dashboard(
-        name="FlightSQL Driver Test Dashboard v2",
+        name="GizmoSQL Driver Test Dashboard",
         description="Comprehensive test dashboard with field filters and multiple chart types for Arrow Flight SQL driver testing",
         parameters=dashboard_params
     )
@@ -1488,7 +1472,6 @@ def main():
     # Step 4: Create database connections
     print("\n--- Database Connections ---")
     gizmo = client.create_gizmosql_connection()
-    spice = client.create_spice_connection()
 
     # Step 5: Sync databases
     print("\n--- Syncing Databases ---")
@@ -1498,13 +1481,6 @@ def main():
         meta = client.get_database_metadata(gizmo["id"])
         tables = meta.get("tables", [])
         print(f"GizmoSQL: {len(tables)} tables synced")
-
-    if spice:
-        client.sync_database(spice["id"])
-        time.sleep(5)
-        meta = client.get_database_metadata(spice["id"])
-        tables = meta.get("tables", [])
-        print(f"Spice: {len(tables)} tables synced")
 
     # Step 6: Test queries
     print("\n--- Testing Queries ---")

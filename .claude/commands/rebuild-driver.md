@@ -26,7 +26,7 @@ done
 podman logs builder 2>&1 | tail -5
 ```
 
-The builder exits when done; its last lines should show `Created /builder/target/metabase-flightsql-driver-0.1.0-SNAPSHOT-standalone.jar`.
+The builder exits when done; its last lines should show `Created /builder/target/metabase-gizmosql-driver-1.0.0-SNAPSHOT-standalone.jar`.
 
 ### 2. Restart Metabase
 
@@ -43,12 +43,12 @@ for i in {1..40}; do
   if podman exec metabase curl -s -f "http://localhost:3000/api/health" >/dev/null 2>&1; then break; fi
   sleep 5
 done
-podman logs metabase 2>&1 | grep -iE "arrow-flight-sql|plugin" | tail -20
+podman logs metabase 2>&1 | grep -iE "gizmosql|plugin" | tail -20
 podman logs metabase 2>&1 | grep -iE "error|exception" | grep -i "arrow" | tail -10
 ```
 
-**Success**: a "registered plugin" / "Loading plugin" line for arrow-flight-sql and no arrow-related exceptions.
-**Failure**: any `clojure.lang.Compiler$CompilerException` mentioning `arrow_flight_sql.clj` — fix the reported line and rerun this command.
+**Success**: a "registered plugin" / "Loading plugin" line for gizmosql and no arrow-related exceptions.
+**Failure**: any `clojure.lang.Compiler$CompilerException` mentioning `gizmosql.clj` — fix the reported line and rerun this command.
 
 ### 4. Quick smoke (optional but recommended)
 

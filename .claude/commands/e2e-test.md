@@ -1,9 +1,9 @@
 ---
-description: Run end-to-end tests for the Metabase Arrow Flight SQL driver. Starts all services from scratch, runs setup, and validates the dashboard works.
+description: Run end-to-end tests for the Metabase GizmoSQL driver. Starts all services from scratch, runs setup, and validates the dashboard works.
 allowed-tools: Bash, Read, Write, Glob, Grep
 ---
 
-# End-to-End Test for Metabase Arrow Flight SQL Driver
+# End-to-End Test for Metabase GizmoSQL Driver
 
 Run a complete end-to-end test of the driver by starting all services fresh and validating functionality.
 
@@ -35,8 +35,7 @@ podman compose up -d
 This starts:
 - **builder**: Compiles the driver JAR using Leiningen
 - **postgres**: Metabase application database
-- **spiced**: Spice.ai Flight SQL server (port 50051)
-- **gizmosql**: GizmoSQL Flight SQL server (port 31337)
+- **gizmosql**: GizmoSQL server (port 31337)
 - **metabase**: Metabase BI tool (port 3000)
 
 ### 3. Wait for Metabase to be ready
@@ -61,7 +60,7 @@ python scripts/metabase_setup.py
 This script:
 - Performs initial Metabase setup (creates admin user)
 - Creates API key and saves to `.env`
-- Creates GizmoSQL and Spice database connections
+- Creates the GizmoSQL database connection
 - Syncs database schemas
 - Creates a comprehensive test dashboard with 32 cards and 5 field filters
 
@@ -87,7 +86,7 @@ print(f'Parameters: {len(d.get(\"parameters\",[]))}')
 
 **Expected output:**
 ```
-Dashboard: FlightSQL Driver Test Dashboard v2
+Dashboard: GizmoSQL Driver Test Dashboard
 Cards: 32
 Parameters: 5
 ```
@@ -128,7 +127,7 @@ JOIN/aggregate card returns fewer rows than that).
 python -m pytest tests/e2e -v
 ```
 
-Optional stacks widen coverage (TLS/mTLS, InfluxDB 3, anonymous) — see
+Optional stacks widen coverage (TLS/mTLS, OAuth) — see
 `tests/e2e/README.md`. Modules auto-skip when their stack isn't running.
 
 ### 8. Verify connection pool health
@@ -149,7 +148,6 @@ podman logs metabase 2>&1 | grep -i "hash.*changed" | tail -5
 | Filtered query rows | > 0 (card discovered via the status parameter mapping) |
 | Connection pool warnings | None ("Hash of database details changed" should not appear) |
 | GizmoSQL tables synced | 13 tables in memory catalog (analytics, hr, sales schemas) |
-| Spice tables synced | 1 table |
 
 ## Troubleshooting
 
@@ -189,4 +187,3 @@ podman compose up -d metabase
 - **Admin Email**: admin@metabase.local
 - **Admin Password**: Metabase123!
 - **GizmoSQL**: gizmosql:31337 (user: gizmosql, pass: gizmosql_password)
-- **Spice**: spiced-container:50051 (token: 1234567890)

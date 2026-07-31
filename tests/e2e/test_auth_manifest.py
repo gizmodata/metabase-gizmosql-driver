@@ -3,7 +3,7 @@
 
 def test_manifest_fields_shape(mb):
     _, props = mb.get("/api/session/properties")
-    fields = props["engines"]["arrow-flight-sql"]["details-fields"]
+    fields = props["engines"]["gizmosql"]["details-fields"]
     by_name = {}
     for f in fields:
         by_name.setdefault(f["name"], f)
@@ -18,5 +18,4 @@ def test_manifest_fields_shape(mb):
 
 def test_normalize_backfills_use_token(mb):
     dbs = mb.databases()
-    assert dbs["flight"]["details"].get("use-token") is True
     assert dbs["gizmo"]["details"].get("use-token") is False

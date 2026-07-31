@@ -56,7 +56,7 @@ def test_alert_email_delivery(mb):
     status, _ = mb.req("PUT", "/api/email", {
         "email-smtp-host": "maildev", "email-smtp-port": 1025,
         "email-smtp-security": "none",
-        "email-from-address": "metabase@flightsql.local"})
+        "email-from-address": "metabase@gizmosql.local"})
     assert status == 200
 
     def mail_count():

@@ -1,6 +1,9 @@
-# CLAUDE.md — Metabase Arrow Flight SQL Driver
+# CLAUDE.md — Metabase GizmoSQL Driver
 
-Clojure Metabase driver (`:arrow-flight-sql`, parent `:sql-jdbc`) over the Apache Arrow Flight SQL JDBC driver. Demo backends: GizmoSQL (DuckDB) and Spice.ai OSS; the same driver reaches Dremio, InfluxDB 3, Doris, StarRocks, and any other Flight SQL server.
+Clojure Metabase driver (`:gizmosql`, parent `:sql-jdbc`) for GizmoSQL —
+GizmoData's DuckDB-backed Arrow Flight SQL server — over the GizmoSQL JDBC
+driver (`com.gizmodata/gizmosql-jdbc-driver`). Forked from
+J0hnG4lt/metabase-flightsql-driver at 0.4.0 and refocused on GizmoSQL.
 
 ## Skills (read these before working in their area)
 
@@ -16,13 +19,14 @@ Clojure Metabase driver (`:arrow-flight-sql`, parent `:sql-jdbc`) over the Apach
 ## Layout
 
 ```
-src/metabase/driver/arrow_flight_sql.clj   # the whole driver
-resources/metabase-plugin.yaml             # manifest: auth-method dropdown, secrets, schema-filters
-scripts/metabase_setup.py                  # e2e: admin, API key -> .env, connections, 32-card dashboard
-docker-compose.yaml                        # metabase + postgres + spiced + gizmosql + builder
-gizmosql/init.sql                          # 3 catalogs (memory/warehouse/staging), sales/hr/analytics
-spice/spicepod.yaml                        # Spice v2 pod, api-key auth
-.github/workflows/build.yaml               # lint + matrix build {v0.62.5, v0.63.1} + manual release
+src/metabase/driver/gizmosql.clj   # the whole driver
+resources/metabase-plugin.yaml     # manifest: auth toggle, secrets, schema-filters
+scripts/metabase_setup.py          # e2e: admin, API key -> .env, connection, dashboard
+docker-compose.yaml                # metabase + postgres + gizmosql + maildev + builder
+gizmosql/init.sql                  # 3 catalogs (memory/warehouse/staging), sales/hr/analytics
+.github/workflows/build.yaml       # lint + matrix build {v0.62.5, v0.63.1} + driver-test-suite
+.github/workflows/release.yaml     # vX.Y.Z tag push -> jars + GitHub Release from CHANGELOG
+.github/workflows/e2e.yml          # weekly/on-demand full-stack pytest suite
 ```
 
 ## Build truth
@@ -39,6 +43,14 @@ podman logs metabase 2>&1 | grep -i "hash.*changed\|connections:"   # pool healt
 ```
 
 Metabase: http://localhost:3000 (admin@metabase.local / Metabase123!)
+
+## Releases
+
+Keep-a-Changelog + semver tags (no release-please). Flow: move `[Unreleased]`
+into a `## [X.Y.Z] - YYYY-MM-DD` section, bump `version.txt` + `project.clj`,
+commit, `git push origin main vX.Y.Z`. release.yaml verifies version.txt
+matches the tag, builds per-Metabase jars, and publishes the GitHub Release
+with the CHANGELOG section as notes.
 
 ## MCP
 

@@ -1,8 +1,8 @@
-(defproject metabase-flightsql-driver "0.1.0-SNAPSHOT"
-  :description "A Clojure library that enables Metabase to connect to databases using the Apache Arrow Flight SQL JDBC driver, delivering enhanced performance and advanced SQL querying capabilities."
-  :url "https://github.com/J0hnG4lt/metabase-flightsql-driver"
+(defproject metabase-gizmosql-driver "1.0.0-SNAPSHOT"
+  :description "A Metabase driver for GizmoSQL — an Arrow Flight SQL server backed by DuckDB — using the GizmoSQL JDBC driver."
+  :url "https://github.com/gizmodata/metabase-gizmosql-driver"
   :license {:name "Apache-2.0"
             :url "https://www.apache.org/licenses/LICENSE-2.0"}
   :dependencies [[org.clojure/clojure "1.11.1"]
-                 [org.apache.arrow/flight-sql-jdbc-driver "19.0.0"]]
-  :repl-options {:init-ns metabase.driver.arrow-flight-sql})
+                 [com.gizmodata/gizmosql-jdbc-driver "1.7.0"]]
+  :repl-options {:init-ns metabase.driver.gizmosql})

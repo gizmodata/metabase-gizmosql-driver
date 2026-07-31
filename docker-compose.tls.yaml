@@ -7,7 +7,7 @@
 #   gizmosql-mtls (host port 31339): same + REQUIRES client certificates
 # and mounts ./tls into the metabase container so the driver can reference
 # the CA / client cert / client key as local file paths
-# (/opt/flightsql-tls/*.pem) in connection details.
+# (/opt/gizmosql-tls/*.pem) in connection details.
 #
 # How the certs reach the server: the image entrypoint
 # (scripts/start_gizmosql.sh) passes --tls tls/cert0.pem tls/cert0.key and
@@ -17,7 +17,7 @@
 services:
   metabase:
     volumes:
-      - ./tls:/opt/flightsql-tls:ro
+      - ./tls:/opt/gizmosql-tls:ro
 
   gizmosql-tls:
     image: gizmodata/gizmosql:v1.35.1
@@ -31,7 +31,7 @@ services:
       TLS_ENABLED: "1"
       GIZMOSQL_USERNAME: "gizmosql"
       GIZMOSQL_PASSWORD: "gizmosql_password"
-      SECRET_KEY: "flightsql-demo-jwt-signing-key-0123456789abcdef"
+      SECRET_KEY: "gizmosql-demo-jwt-signing-key-0123456789abcdef"
       PRINT_QUERIES: "1"
       DATABASE_FILENAME: ":memory:"
       INIT_SQL_COMMANDS_FILE: "/opt/gizmosql/init.sql"
@@ -54,7 +54,7 @@ services:
       MTLS_CA_CERT_FILENAME: "/opt/gizmosql/tls/client-ca.pem"
       GIZMOSQL_USERNAME: "gizmosql"
       GIZMOSQL_PASSWORD: "gizmosql_password"
-      SECRET_KEY: "flightsql-demo-jwt-signing-key-0123456789abcdef"
+      SECRET_KEY: "gizmosql-demo-jwt-signing-key-0123456789abcdef"
       PRINT_QUERIES: "1"
       DATABASE_FILENAME: ":memory:"
       INIT_SQL_COMMANDS_FILE: "/opt/gizmosql/init.sql"

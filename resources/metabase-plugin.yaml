@@ -1,16 +1,16 @@
 info:
-  name: Metabase Arrow Flight SQL Driver
-  version: 1.0.0-SNAPSHOT-1.0.0
-  description: Allows Metabase to connect to databases via the Apache Arrow Flight SQL JDBC driver.
+  name: Metabase GizmoSQL Driver
+  version: 1.0.0
+  description: Allows Metabase to connect to GizmoSQL via the GizmoSQL JDBC driver.
 
 # contact-info belongs at the top level (not inside driver)
 contact-info:
-  name: Metabase FlightSQL Driver
-  address: https://github.com/J0hnG4lt/metabase-flightsql-driver/issues
+  name: GizmoData
+  address: https://github.com/gizmodata/metabase-gizmosql-driver/issues
 
 driver:
-  name: arrow-flight-sql
-  display-name: Arrow Flight SQL
+  name: gizmosql
+  display-name: GizmoSQL
   lazy-load: true
   parent: sql-jdbc
 
@@ -20,10 +20,10 @@ driver:
         - host
         - { placeholder: "localhost" }
 
-    # Use built-in port; override placeholder
+    # Use built-in port; override placeholder (31337 is GizmoSQL's default)
     - merge:
         - port
-        - { placeholder: "443" }
+        - { placeholder: "31337" }
 
     # ------------------------------------------------------------------
     # Authentication. A boolean toggle switches between username/password
@@ -32,13 +32,10 @@ driver:
     # manifest linter only allows boolean/string/secret/... property types,
     # so a select dropdown is not authorable in yaml.)
     #
-    # Coverage of the Flight SQL auth landscape:
-    #   user/password        -> Flight handshake basic auth (GizmoSQL, Dremio,
-    #                           Doris, StarRocks, Denodo, ...)
-    #   Spice.ai API key     -> leave Username EMPTY, put the key in Password
+    # Coverage of the GizmoSQL auth landscape:
+    #   user/password        -> Flight handshake basic auth
     #   GizmoSQL external JWT-> Username literally "token", JWT in Password
-    #   bearer/PAT/API token -> enable "Use token" (InfluxDB 3, Dremio PAT)
-    #   anonymous            -> leave everything blank (ROAPI, kamu, Ballista)
+    #   bearer token         -> enable "Use token"
     #   OAuth2 / headers     -> additional-options (oauth.*, custom params)
     - name: use-token
       display-name: Authenticate with a token instead of username/password
@@ -80,7 +77,7 @@ driver:
       type: schema-filters
       display-name: Schemas
 
-    # Secure by default, matching both the Arrow Flight SQL JDBC driver's own
+    # Secure by default, matching both the GizmoSQL JDBC driver's own
     # defaults and the :or defaults in connection-details->spec. Local demo
     # servers without TLS need Use Encryption switched off explicitly.
     - name: useEncryption
@@ -124,10 +121,8 @@ driver:
       visible-if:
         advanced-options: true
 
-    # Only writable backends (GizmoSQL/DuckDB, quack-on-demand, Doris,
-    # StarRocks...) can accept CSV uploads and Data Studio table transforms;
-    # read-only servers (InfluxDB 3, Spice accelerations, ROAPI) must leave
-    # this off.
+    # GizmoSQL's DuckDB backend is writable and accepts CSV uploads and Data
+    # Studio table transforms; leave this off for read-only deployments.
     - name: enable-uploads
       display-name: Writable backend (enable CSV uploads & transforms)
       type: boolean
@@ -156,6 +151,6 @@ driver:
 
 init:
   - step: load-namespace
-    namespace: metabase.driver.arrow-flight-sql
+    namespace: metabase.driver.gizmosql
   - step: register-jdbc-driver
     class: org.apache.arrow.driver.jdbc.ArrowFlightJdbcDriver

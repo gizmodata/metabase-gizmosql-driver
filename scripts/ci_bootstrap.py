@@ -2,8 +2,8 @@
 write it to .env. No backend connections or dashboards — backend-specific
 test modules register their own connections via the db_factory fixture.
 
-Used by the heavy-backend CI jobs (Doris/StarRocks) so they don't have to
-spin up Spice/GizmoSQL just to get an API key. Run from the repo root.
+Used by CI jobs that only need Metabase credentials without running the
+full GizmoSQL setup/dashboard script. Run from the repo root.
 """
 import sys
 from pathlib import Path

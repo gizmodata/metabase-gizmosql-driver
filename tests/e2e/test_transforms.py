@@ -1,8 +1,7 @@
 """Data Studio transforms (:transforms/table) on a writable backend.
 
 A transform runs a saved query as CREATE TABLE AS on the warehouse. Gated by
-the same per-connection "Writable backend" toggle as uploads, so read-only
-backends never appear in Data Studio's compatible-database list.
+the same per-connection "Writable backend" toggle as uploads.
 """
 import time
 
@@ -21,12 +20,6 @@ def gizmo_writable(mb):
     assert "transforms/table" in (full.get("features") or []), \
         "gizmo should advertise transforms/table when writable"
     return gizmo["id"]
-
-
-def test_transforms_gated_by_connection(mb, gizmo_writable):
-    """Read-only backends must not advertise transforms."""
-    _, flight = mb.get(f"/api/database/{mb.databases()['flight']['id']}")
-    assert "transforms/table" not in (flight.get("features") or [])
 
 
 def test_ctas_transform_runs_and_creates_table(mb, gizmo_writable):

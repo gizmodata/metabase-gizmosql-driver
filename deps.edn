@@ -1,9 +1,10 @@
 {:paths ["src" "resources"]
 
  :deps {org.clojure/clojure {:mvn/version "1.11.1"}
-        ;; 19.0.0 (2026-03): suppresses benign close-time gRPC exceptions
-        ;; (GH-863), adds OAuth2 (oauth.* URL props), connectTimeoutMillis,
-        ;; and UUID type support. Requires JDK 17+ (Metabase runs 21).
-        org.apache.arrow/flight-sql-jdbc-driver {:mvn/version "19.0.0"}}
+        ;; GizmoData's fork of the Apache Arrow Flight SQL JDBC driver
+        ;; (shaded jar). Adds jdbc:gizmosql:// URLs, timestamp-TZ fixes,
+        ;; getIndexInfo()/COLUMN_DEF metadata via _gizmosql_system, and
+        ;; RETURNING-clause routing. Requires JDK 17+ (Metabase runs 21+).
+        com.gizmodata/gizmosql-jdbc-driver {:mvn/version "1.7.0"}}
 
 }

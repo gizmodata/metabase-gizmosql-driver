@@ -1,18 +1,18 @@
 ---
 name: driver-dev
-description: Develop and debug the Metabase Arrow Flight SQL driver — edit/rebuild/redeploy cycle, connection pooling and connection-options gotchas, auth modes, secret-typed properties, feature flags, and known failure signatures. Use whenever modifying src/metabase/driver/arrow_flight_sql.clj or resources/metabase-plugin.yaml, or when diagnosing driver behavior in the compose stack.
+description: Develop and debug the Metabase GizmoSQL driver — edit/rebuild/redeploy cycle, connection pooling and connection-options gotchas, auth modes, secret-typed properties, feature flags, and known failure signatures. Use whenever modifying src/metabase/driver/gizmosql.clj or resources/metabase-plugin.yaml, or when diagnosing driver behavior in the compose stack.
 ---
 
-# Flight SQL Driver Development
+# GizmoSQL Driver Development
 
 ## Two build paths — know which artifact you are running
 
 | Path | Used by | What it produces |
 |---|---|---|
-| `bin/build-driver.sh arrow-flight-sql` inside a Metabase checkout | **CI / releases** | AOT-compiled `arrow-flight-sql.metabase-driver.jar` |
-| `lein uberjar` via the compose `builder` service | **local compose demo** | driver *source* + Arrow JDBC classes; Metabase compiles the namespace at plugin load |
+| `bin/build-driver.sh gizmosql` inside a Metabase checkout | **CI / releases** | AOT-compiled `gizmosql.metabase-driver.jar` |
+| `lein uberjar` via the compose `builder` service | **local compose demo** | driver *source* + GizmoSQL JDBC classes; Metabase compiles the namespace at plugin load |
 
-Consequence: the compose path surfaces compile errors only in **Metabase's startup logs** (`podman logs metabase`), not at build time. After any driver edit, always check the log for `arrow-flight-sql` load errors before testing behavior.
+Consequence: the compose path surfaces compile errors only in **Metabase's startup logs** (`podman logs metabase`), not at build time. After any driver edit, always check the log for `gizmosql` load errors before testing behavior.
 
 ## Rebuild/redeploy cycle (compose)
 
@@ -20,14 +20,14 @@ Consequence: the compose path surfaces compile errors only in **Metabase's start
 podman compose down metabase builder
 podman compose up -d builder        # ~30s: rebuilds the jar
 podman compose up -d metabase
-podman logs metabase 2>&1 | grep -i "plugin\|arrow-flight-sql" | tail -20
+podman logs metabase 2>&1 | grep -i "plugin\|gizmosql" | tail -20
 ```
 
 Or run the `/rebuild-driver` command.
 
 ## Critical invariants (violating these caused real bugs)
 
-1. **Stable connection spec hash.** `connection-details->spec` must return identical values for identical details — an anonymous fn in the map changes the hash every call and Metabase invalidates the pool constantly. Symptoms: `Hash of database X details changed; marking pool invalid`, `connections: 0/0`, random dashboard failures. That's why `:cast` is a named fn (`arrow-flight-sql-cast-fn`).
+1. **Stable connection spec hash.** `connection-details->spec` must return identical values for identical details — an anonymous fn in the map changes the hash every call and Metabase invalidates the pool constantly. Symptoms: `Hash of database X details changed; marking pool invalid`, `connections: 0/0`, random dashboard failures. That's why `:cast` is a named fn (`gizmosql-cast-fn`).
 2. **Secret-typed properties never arrive as their own name.** A `type: secret` property `foo` arrives as `foo-value` (uploaded) or `foo-id` (persisted). Always resolve via `driver-api/secret-value-as-string` / `secret-value-as-file!` (see `secret-string` / `secret-file-path` helpers). Plain keys are only a REST-API-created fallback.
 3. **No transaction-isolation probes.** `DatabaseMetaData.supportsTransactionIsolationLevel` NPEs on servers with incomplete `GetSqlInfo` (the reason `do-with-connection-with-options` is overridden). Never add code that touches transaction metadata.
 4. **Feature keywords are validated.** Declaring a feature Metabase doesn't know **throws at load**. Check `metabase.driver/features` for the pinned version before adding flags; `describe-table-fks` no longer exists on 0.63+.
@@ -44,16 +44,14 @@ always validate manifest changes against the linter (CI build does).
 
 | Configuration | JDBC params | Servers |
 |---|---|---|
-| toggle off, user+password | `user=…&password=…` | GizmoSQL, Dremio, Doris, StarRocks, Denodo |
-| toggle off, blank user + password | `user=&password=…` | Spice.ai API key |
+| toggle off, user+password | `user=…&password=…` | Flight handshake basic auth |
 | toggle off, username literally `token` + JWT password | `user=token&password=<JWT>` | GizmoSQL external JWT |
-| toggle on + token secret | `authorization=Bearer …` | InfluxDB 3, Dremio PAT, pre-issued JWTs |
-| everything blank | (nothing) | ROAPI, kamu, Ballista, unauthenticated Spice |
+| toggle on + token secret | `authorization=Bearer …` | pre-issued bearer tokens/JWTs |
 
 Legacy details without `use-token` are inferred, and `normalize-db-details`
 backfills the flag so the admin form opens in the right mode.
 
-mTLS/CA material: secret pem-cert props materialized to files → `tlsRootCerts` / `clientCertificate` / `clientKey`. `additional-options` is the escape hatch for `oauth.*`, `retainAuth`, `threadPoolSize`, and custom gRPC headers (unknown params are forwarded as headers — e.g. `database=<db>` for InfluxDB 3).
+mTLS/CA material: secret pem-cert props materialized to files → `tlsRootCerts` / `clientCertificate` / `clientKey`. `additional-options` is the escape hatch for `oauth.*`, `retainAuth`, `threadPoolSize`, and custom gRPC headers (unknown params are forwarded as headers).
 
 ## Known failure signatures
 
@@ -61,7 +59,7 @@ mTLS/CA material: secret pem-cert props materialized to files → `tlsRootCerts`
 |---|---|---|
 | `Hash of database details changed` | unstable spec (see invariant 1) | stable named fns/values |
 | NPE in `ArrowDatabaseMetadata.getSqlInfoAndCacheIfCacheIsEmpty` | server lacks SqlInfo keys | keep metadata probes out; GizmoSQL fixed server-side in #34 |
-| `Channel shutdown` on close | benign gRPC close noise | fixed by Arrow JDBC ≥ 19.0.0 (GH-863) |
+| `Channel shutdown` on close | benign gRPC close noise | fixed upstream in Arrow JDBC 19.0.0 (GH-863); included in GizmoSQL JDBC 1.7.0 |
 | Bearer auth fails after gizmosql restart | JWT signing key rotated | stable `SECRET_KEY` in compose |
 | "Prepared statement not found" | concurrent queries on unstable pool | invariant 1; check pool health |
 

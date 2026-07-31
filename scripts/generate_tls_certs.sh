@@ -17,7 +17,7 @@ DAYS=825
 echo "==> CA"
 openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out ca-key.pem
 openssl req -new -x509 -key ca-key.pem -out ca-cert.pem -days "$DAYS" \
-  -subj "/CN=flightsql-driver-test-ca"
+  -subj "/CN=gizmosql-driver-test-ca"
 
 echo "==> Server cert (SANs cover the compose hostnames + localhost)"
 openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out server-key.pem
@@ -33,7 +33,7 @@ openssl x509 -req -in server.csr -CA ca-cert.pem -CAkey ca-key.pem \
 echo "==> Client cert (mTLS; key emitted as PKCS#8, which the Arrow JDBC driver expects)"
 openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out client-key.pem
 openssl req -new -key client-key.pem -out client.csr \
-  -subj "/CN=flightsql-driver-test-client"
+  -subj "/CN=gizmosql-driver-test-client"
 cat > client-ext.cnf <<'EOF'
 extendedKeyUsage = clientAuth
 EOF

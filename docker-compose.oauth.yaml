@@ -8,8 +8,8 @@
 #     verifies the RS256 signature with the pre-generated certificate
 #     (TOKEN_SIGNATURE_VERIFY_CERT_PATH) plus issuer/audience checks.
 #   - GizmoSQL external-JWT convention (username "token" + JWT password),
-#     including role claims: flightsql-m2m mints role=admin tokens,
-#     flightsql-readonly mints role=readonly (SELECT-only) tokens.
+#     including role claims: gizmosql-m2m mints role=admin tokens,
+#     gizmosql-readonly mints role=readonly (SELECT-only) tokens.
 #
 # KC_HOSTNAME is pinned to the in-network URL so the token issuer is stable
 # no matter where the token request comes from (host uses localhost:8180).
@@ -42,14 +42,14 @@ services:
       TLS_ENABLED: "0"
       GIZMOSQL_USERNAME: "gizmosql"
       GIZMOSQL_PASSWORD: "gizmosql_password"
-      SECRET_KEY: "flightsql-demo-jwt-signing-key-0123456789abcdef"
+      SECRET_KEY: "gizmosql-demo-jwt-signing-key-0123456789abcdef"
       DATABASE_FILENAME: ":memory:"
       INIT_SQL_COMMANDS_FILE: "/opt/gizmosql/init.sql"
       PRINT_QUERIES: "1"
       # NOTE: the unprefixed TOKEN_* env vars from --help are not applied in
       # the container path; pass the flags via the entrypoint's escape hatch.
       GIZMOSQL_EXTRA_ARGS: >-
-        --token-allowed-issuer "http://keycloak:8080/realms/flightsql"
+        --token-allowed-issuer "http://keycloak:8080/realms/gizmosql"
         --token-allowed-audience "gizmosql"
         --token-signature-verify-cert-path /opt/oauth/signing-cert.pem
     ports:

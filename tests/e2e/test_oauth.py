@@ -25,8 +25,8 @@ requires_oauth_stack = pytest.mark.skipif(
 
 pytestmark = requires_oauth_stack
 
-KC_TOKEN_URL = "http://localhost:8180/realms/flightsql/protocol/openid-connect/token"
-IN_NETWORK_TOKEN_URL = "http://keycloak:8080/realms/flightsql/protocol/openid-connect/token"
+KC_TOKEN_URL = "http://localhost:8180/realms/gizmosql/protocol/openid-connect/token"
+IN_NETWORK_TOKEN_URL = "http://keycloak:8080/realms/gizmosql/protocol/openid-connect/token"
 
 GIZMO_OAUTH = {"host": "gizmosql-oauth", "port": 31337, "use-token": False,
                "useEncryption": False, "disableCertificateVerification": True}
@@ -46,7 +46,7 @@ def jwt_details(jwt):
 
 
 def test_keycloak_jwt_admin_connects_and_writes(mb, db_factory):
-    jwt = keycloak_token("flightsql-m2m", "m2m-demo-secret-0123456789")
+    jwt = keycloak_token("gizmosql-m2m", "m2m-demo-secret-0123456789")
     db_id = db_factory("t-kc-admin", jwt_details(jwt))
     res = mb.native(db_id, "SELECT COUNT(*) FROM sales.orders")
     assert res.get("status") == "completed" and res["data"]["rows"][0][0] > 0
@@ -56,7 +56,7 @@ def test_keycloak_jwt_admin_connects_and_writes(mb, db_factory):
 
 
 def test_keycloak_jwt_readonly_role_is_select_only(mb, db_factory):
-    jwt = keycloak_token("flightsql-readonly", "readonly-demo-secret-0123456789")
+    jwt = keycloak_token("gizmosql-readonly", "readonly-demo-secret-0123456789")
     db_id = db_factory("t-kc-readonly", jwt_details(jwt))
     res = mb.native(db_id, "SELECT COUNT(*) FROM sales.customers")
     assert res.get("status") == "completed" and res["data"]["rows"][0][0] > 0
@@ -65,7 +65,7 @@ def test_keycloak_jwt_readonly_role_is_select_only(mb, db_factory):
 
 
 def test_tampered_jwt_rejected(mb, db_factory):
-    jwt = keycloak_token("flightsql-m2m", "m2m-demo-secret-0123456789")
+    jwt = keycloak_token("gizmosql-m2m", "m2m-demo-secret-0123456789")
     bad = jwt[:-20] + "A" * 20
     db_id = db_factory("t-kc-tampered", jwt_details(bad), expect_ok=False)
     assert db_id is None
@@ -80,7 +80,7 @@ def test_jdbc_oauth_bearer_header_not_accepted_by_core(mb, db_factory):
     support — update the docs and promote this to a positive test."""
     opts = ("oauth.flow=client_credentials"
             f"&oauth.tokenUri={IN_NETWORK_TOKEN_URL}"
-            "&oauth.clientId=flightsql-m2m"
+            "&oauth.clientId=gizmosql-m2m"
             "&oauth.clientSecret=m2m-demo-secret-0123456789")
     db_id = db_factory("t-kc-oauth-header", {**GIZMO_OAUTH, "additional-options": opts},
                        expect_ok=False)

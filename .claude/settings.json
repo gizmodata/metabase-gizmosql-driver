@@ -20,7 +20,6 @@
       "WebFetch(domain:www.metabase.com)",
       "WebFetch(domain:arrow.apache.org)",
       "WebFetch(domain:docs.gizmosql.com)",
-      "WebFetch(domain:spiceai.org)",
       "WebSearch"
     ]
   }

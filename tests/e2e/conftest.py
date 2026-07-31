@@ -4,7 +4,6 @@ Requires a running compose stack (podman-compose up -d) that has been set up
 with scripts/metabase_setup.py (which writes METABASE_API_KEY to .env).
 Optional stacks enable extra tests when present:
   - TLS profile (docker-compose.tls.yaml + scripts/generate_tls_certs.sh)
-  - influxdb3 (seeded via scripts/setup_influxdb3.py)
 """
 import json
 import socket
@@ -101,7 +100,7 @@ def db_factory(mb):
 
     def create(name, details, expect_ok=True):
         status, res = mb.post("/api/database", {
-            "name": name, "engine": "arrow-flight-sql", "details": details})
+            "name": name, "engine": "gizmosql", "details": details})
         ok = status == 200 and isinstance(res, dict) and res.get("id")
         if ok:
             created.append(res["id"])
@@ -119,17 +118,6 @@ GIZMO_DETAILS = {"host": "gizmosql", "port": 31337, "username": "gizmosql",
                  "password": "gizmosql_password", "use-token": False,
                  "useEncryption": False, "disableCertificateVerification": True}
 
-SPICE_HOST = {"host": "spiced-container", "port": 50051,
-              "useEncryption": False, "disableCertificateVerification": True}
-
 requires_tls_stack = pytest.mark.skipif(
     not (REPO_ROOT / "tls" / "ca-cert.pem").exists() or not port_open("localhost", 31338),
     reason="TLS profile not running (scripts/generate_tls_certs.sh + docker-compose.tls.yaml)")
-
-requires_influxdb3 = pytest.mark.skipif(
-    "INFLUXDB3_TOKEN" not in ENV or not port_open("localhost", 8181),
-    reason="influxdb3 not running/seeded (scripts/setup_influxdb3.py)")
-
-requires_spiced_anon = pytest.mark.skipif(
-    not port_open("localhost", 50052),
-    reason="spiced-anon service not running")

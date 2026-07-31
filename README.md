@@ -1,40 +1,50 @@
-# Metabase Arrow Flight SQL Driver
+# Metabase GizmoSQL Driver
 
-A Clojure library that enables Metabase to connect to databases using the Apache Arrow Flight SQL JDBC driver. This driver integrates Arrow Flight SQL into Metabase, delivering enhanced performance and advanced SQL querying capabilities.
+A Metabase driver for [GizmoSQL](https://gizmosql.com) — GizmoData's Arrow
+Flight SQL server backed by DuckDB. Connects via the
+[GizmoSQL JDBC driver](https://github.com/gizmodata/gizmosql-jdbc-driver)
+(`com.gizmodata/gizmosql-jdbc-driver`), GizmoData's enhanced build of the
+Apache Arrow Flight SQL JDBC driver.
 
-My main goal was to allow Metabase to use [Spice.ai OSS](https://spiceai.org/docs) as a cache layer.
+Forked from
+[J0hnG4lt/metabase-flightsql-driver](https://github.com/J0hnG4lt/metabase-flightsql-driver)
+(Apache-2.0) and refocused on GizmoSQL.
 
 ## Features
 
-- JDBC-based integration: Leverages the Apache Arrow Flight SQL JDBC driver.
-- Flexible configuration: Supports custom connection properties such as host, port, user, password, token, and encryption.
-- Custom Schema Sync: Implements table and column description methods for seamless Metabase integration.
-- Timestamp Conversion: Automatically converts TIMESTAMP columns to local date-time objects.
-- Field Filters: Full support for Metabase field filters including table aliases for JOIN queries.
+- Registers as the **GizmoSQL** database type (`gizmosql`, parent `sql-jdbc`).
+- Username/password (Flight handshake), bearer-token/JWT, and OAuth2 auth.
+- TLS by default, with custom CA and mTLS client-certificate support.
+- Catalog selection plus schema include/exclude filters during sync.
+- Field filters, MBQL, native SQL, pivot tables, and dashboard parameters.
+- CSV uploads and Data Studio table transforms (opt-in per connection).
+- Timestamp/date/time conversion tuned for GizmoSQL's DuckDB backend.
 
 ## Compatibility
 
 CI builds one jar per supported Metabase release line (see release assets):
 
-| Driver release | Metabase | Arrow Flight SQL JDBC | Notes |
+| Driver release | Metabase | GizmoSQL JDBC | Notes |
 |---|---|---|---|
-| unreleased (main) | v0.62.5 (`-mb62` jar), v0.63.1 (`-mb63` jar) | 19.0.0 | MB 63 image runs JDK 25 — see *Java / JVM requirements* |
-| 0.1.0 | v0.62.5, v0.63.1 | 19.0.0 | |
-| 0.0.9 | v0.62.4 | 18.2.0 | |
-| 0.0.5 – 0.0.8 | v0.55 – v0.62 | 18.2.0 | |
+| 1.0.0 | v0.62.5 (`-mb62` jar), v0.63.1 (`-mb63` jar) | 1.7.0 | MB 63 image runs JDK 25 — see *Java / JVM requirements* |
 
 ## Java / JVM requirements (important for Metabase 63+)
 
-The official **Metabase v0.63 Docker image runs JDK 25** (v0.62 ran JDK 21). Two JDK-25 changes break the Arrow Flight SQL JDBC driver's memory allocator at first connection with:
+The official **Metabase v0.63 Docker image runs JDK 25** (v0.62 ran JDK 21).
+Two JDK-25 changes break the Arrow-based memory allocator at first connection
+with:
 
 ```
-Could not initialize class org.apache.arrow.driver.jdbc.shaded.org.apache.arrow.memory.RootAllocator
+Could not initialize class ...arrow.memory.RootAllocator
 ```
 
-1. **JEP 498**: `sun.misc.Unsafe` memory-access methods are disabled by default on JDK 24+ — Arrow's allocator depends on them.
-2. The image's default flags no longer open `java.nio` internals to unnamed modules.
+1. **JEP 498**: `sun.misc.Unsafe` memory-access methods are disabled by
+   default on JDK 24+ — Arrow's allocator depends on them.
+2. The image's default flags no longer open `java.nio` internals to unnamed
+   modules.
 
-**Fix — pass these JVM options to Metabase** (the bundled `docker-compose.yaml` already does):
+**Fix — pass these JVM options to Metabase** (the bundled
+`docker-compose.yaml` already does):
 
 ```yaml
 environment:
@@ -46,40 +56,39 @@ environment:
     -Dio.netty.tryReflectionSetAccessible=true
 ```
 
-For bare-JVM installs, add the same flags to the `java ... -jar metabase.jar` command line. On Metabase ≤ 62 (JDK 21) only the two `--add-opens` are needed and the image already includes them; `--sun-misc-unsafe-memory-access` is unknown to JDK ≤ 22 and must be omitted there.
+For bare-JVM installs, add the same flags to the `java ... -jar metabase.jar`
+command line. On Metabase ≤ 62 (JDK 21) only the two `--add-opens` are needed
+and the image already includes them; `--sun-misc-unsafe-memory-access` is
+unknown to JDK ≤ 22 and must be omitted there.
 
-> Symptom guide: the driver *loads* and registers fine at startup — the failure appears only on the first real connection/health-check, and once the class-init fails the JVM caches the failure until restart.
-
-## Upgrading from 0.0.x
-
-Drop-in: replace the plugin jar (pick the `-mb62`/`-mb63` release asset matching your Metabase line) and restart Metabase. Existing connections keep working — the driver auto-detects legacy details (plain username/password or token) and backfills the new auth toggle on read.
-
-After upgrading, open each Flight SQL connection in **Admin → Databases** and hit **Save** once: this persists the backfilled auth flag and re-validates the connection.
-
-Behavior changes to be aware of:
-
-- **New** connections default to *Use Encryption ON* (previously off). Existing connections keep their stored setting.
-- Tokens entered through the admin UI now actually work (previously only API-created connections could authenticate with tokens).
-- `convertTimezone()` no longer appears in the expression editor — it was advertised but never worked.
-- FK metadata is no longer probed during sync (it always returned nothing anyway); Metabase-side semantic/FK settings are unaffected.
-- Release assets are now named per Metabase line (`arrow-flight-sql.metabase-driver-mb62.jar`, `-mb63.jar`) — update any download automation.
-- Built and tested against Metabase v0.62.5 and v0.63.1; bundles Arrow Flight SQL JDBC 19.0.0.
+> Symptom guide: the driver *loads* and registers fine at startup — the
+> failure appears only on the first real connection/health-check, and once the
+> class-init fails the JVM caches the failure until restart.
 
 ## Installation
 
+Download the jar matching your Metabase line from the
+[latest release](https://github.com/gizmodata/metabase-gizmosql-driver/releases/latest)
+(`gizmosql.metabase-driver-mb62.jar` or `-mb63.jar`), drop it into Metabase's
+`plugins/` directory, add the JVM flags above, and restart Metabase. Then add
+a database of type **GizmoSQL** in **Admin → Databases**.
+
+## Local development
+
 ### Prerequisites
 
-- Podman (https://podman.io/) – for container management.
-- Python 3 – for running the automated setup script.
-- Leiningen (https://leiningen.org/) – optional, for local builds (the docker-compose handles this automatically).
+- Podman or Docker – for the compose stack.
+- Python 3 – for the automated setup script.
+- Leiningen – optional, for local builds (the compose `builder` service
+  handles this automatically).
 
 ### Quick Start
 
-1. Clone the Repository
+1. Clone the repository
 
    ```bash
-   git clone https://github.com/J0hnG4lt/metabase-flightsql-driver.git
-   cd metabase-flightsql-driver
+   git clone https://github.com/gizmodata/metabase-gizmosql-driver.git
+   cd metabase-gizmosql-driver
    ```
 
 2. Start all services
@@ -88,10 +97,10 @@ Behavior changes to be aware of:
    podman compose up -d
    ```
 
-3. Wait for Metabase to be ready (takes ~1-2 minutes for JAR build + Metabase startup)
+3. Wait for Metabase to be ready (takes ~1-2 minutes for the jar build +
+   Metabase startup)
 
    ```bash
-   # Check if Metabase is ready
    podman exec metabase curl -s http://localhost:3000/api/health
    ```
 
@@ -101,25 +110,13 @@ Behavior changes to be aware of:
    python scripts/metabase_setup.py
    ```
 
-   This script will:
-   - Perform initial Metabase setup (creates admin user)
-   - Create an API key for automation
-   - Configure database connections (GizmoSQL and Spice.ai)
-   - Create a comprehensive test dashboard with 32 cards and 5 field filters
+   This script performs initial Metabase setup (admin user + API key),
+   creates the GizmoSQL connection, and builds a comprehensive test
+   dashboard with field filters.
 
 5. Open Metabase at http://localhost:3000
    - Email: `admin@metabase.local`
    - Password: `Metabase123!`
-
-### Building the Driver Manually
-
-If you prefer to build locally:
-
-```bash
-lein uberjar
-```
-
-The docker-compose file also contains a builder service, so don't worry if you have issues when installing lein and clojure.
 
 ## Docker Services
 
@@ -127,13 +124,11 @@ The docker-compose file also contains a builder service, so don't worry if you h
 |---------|------|-------------|
 | metabase | 3000 | Metabase BI tool |
 | postgres | 5432 | Metabase application database |
-| spiced | 50051, 8090, 9090 | Spice.ai Flight SQL server (API-key auth) |
-| spiced-anon | 50052 | Spice.ai without auth (anonymous-connection testing) |
-| gizmosql | 31337 | GizmoSQL Flight SQL server (DuckDB-based) |
-| influxdb3 | 8181 | InfluxDB 3 Core (bearer-token-only; seed via `scripts/setup_influxdb3.py`) |
-| builder | - | Builds the driver JAR |
+| gizmosql | 31337 | GizmoSQL server (DuckDB-backed, demo credentials) |
+| maildev | 1080, 1025 | SMTP sink for alert/subscription tests |
+| builder | - | Builds the driver jar |
 
-Optional overlay profiles (not in the default stack): **TLS/mTLS**, **OAuth2/Keycloak**, **Doris**, **StarRocks**, and **Dremio** (`docker-compose.dremio.yaml`, port `9047` UI / `32010` Flight SQL — the Apache Iceberg backend).
+Optional overlay profiles: **TLS/mTLS** and **OAuth2/Keycloak**.
 
 ### Optional TLS/mTLS profile
 
@@ -142,7 +137,10 @@ Optional overlay profiles (not in the default stack): **TLS/mTLS**, **OAuth2/Key
 podman-compose -f docker-compose.yaml -f docker-compose.tls.yaml up -d
 ```
 
-Adds `gizmosql-tls` (31338, CA-signed TLS) and `gizmosql-mtls` (31339, requires client certificates), and mounts `./tls` into Metabase at `/opt/flightsql-tls` so the driver's *Server CA certificate*, *mTLS client certificate/key* fields can reference the files.
+Adds `gizmosql-tls` (31338, CA-signed TLS) and `gizmosql-mtls` (31339,
+requires client certificates), and mounts `./tls` into Metabase so the
+driver's *Server CA certificate* and *mTLS client certificate/key* fields can
+reference the files.
 
 ### Optional OAuth2 profile (Keycloak)
 
@@ -151,104 +149,80 @@ python scripts/generate_oauth_config.py    # deterministic RS256 signing key + K
 podman-compose -f docker-compose.yaml -f docker-compose.oauth.yaml up -d keycloak gizmosql-oauth
 ```
 
-Adds Keycloak (host port 8180, realm `flightsql` with client-credentials clients minting `role=admin` and `role=readonly` tokens) and `gizmosql-oauth` (host port 31340; verifies JWT signature/issuer/audience). Connect from Metabase with Username `token` and the OAuth access token as Password — the readonly-role token is SELECT-only.
+Adds Keycloak (host port 8180, with client-credentials clients minting
+`role=admin` and `role=readonly` tokens) and `gizmosql-oauth` (host port
+31340; verifies JWT signature/issuer/audience). Connect from Metabase with
+Username `token` and the OAuth access token as Password — the readonly-role
+token is SELECT-only.
 
-> Note: GizmoSQL **Core** accepts external JWTs only via that handshake convention. The Arrow JDBC `oauth.*` client-credentials flow fetches and sends the token correctly, but Core's bearer-header path only accepts its own session tokens (external bearer headers are an Enterprise/JWKS capability — or use Dremio).
+> Note: GizmoSQL **Core** accepts external JWTs only via that handshake
+> convention. The JDBC `oauth.*` client-credentials flow fetches and sends the
+> token correctly, but Core's bearer-header path only accepts its own session
+> tokens (external bearer headers are an Enterprise/JWKS capability).
 
-### Optional Apache Doris profile (MySQL-dialect backend)
+### CSV uploads
 
-Doris is the first **MySQL-dialect** Flight SQL backend in the test matrix (all
-others are DuckDB/DataFusion-flavored) and the only one supporting `SET ROLE`
-and full DDL/DML writes — the target for connection impersonation and the canary
-for SQL-dialect divergence.
-
-```bash
-# host prerequisites for the Doris BE (a C++ process):
-podman machine ssh "sudo sysctl -w vm.max_map_count=2000000 && sudo swapoff -a"
-
-podman-compose -f docker-compose.yaml -f docker-compose.doris.yaml up -d doris
-python scripts/setup_doris.py     # waits for a live BE, loads sample schemas
-```
-
-Connect from Metabase with **host `doris`, port `8070`, user `root`, empty
-password**, and **Additional options `useServerPrepStmts=false`** (required —
-Arrow Flight SQL + Doris don't support prepared-statement parameters). Doris
-"databases" appear as Metabase schemas (`sales`, `hr`, `analytics`).
-
-> **Known limitation:** the Doris BE does not become usable under
-> podman-on-Windows (WSL2/Hyper-V) — the BE's heartbeat service never reaches the
-> FE. The FE (Java) is fine; the backend simply never goes "alive". Run this
-> profile on **native Linux** (or Linux CI). The pytest suite auto-skips Doris
-> unless `scripts/setup_doris.py` confirmed it's usable (`DORIS_READY` gate).
-
-### Optional Dremio profile (Apache Iceberg lakehouse)
-
-Dremio is a native lakehouse engine that speaks Arrow Flight SQL and stores
-tables as **Apache Iceberg** — so this profile is how the suite proves Metabase
-can read (and write) Iceberg through the driver. Unlike Doris/StarRocks,
-single-node Dremio is **one JVM that serves Flight results inline** (no
-advertised `127.0.0.1` endpoint), so it works from a separate Metabase container
-on any host — including podman-on-Windows.
-
-```bash
-podman-compose -f docker-compose.yaml -f docker-compose.dremio.yaml up -d dremio
-python scripts/setup_dremio.py    # bootstraps admin, adds an Iceberg source, seeds tables + a PAT
-```
-
-Connect from Metabase with **host `dremio`, port `32010`, user `dremio`, password
-`dremio123`** (or toggle the token option on and paste the **Personal Access
-Token** from `.env` as `DREMIO_PAT`). The seeded Iceberg tables surface as schemas
-`wh.sales` / `wh.hr` / `wh.analytics`. Dremio wants ~4 GB RAM and ~1–2 min to
-boot; the pytest suite auto-skips it unless `scripts/setup_dremio.py` succeeded
-(`DREMIO_READY` gate).
-
-### CSV uploads (writable backends)
-
-Uploads are double-gated: tick **"Writable backend (enable CSV uploads)"** in the connection's advanced options (only for servers that accept DDL/DML over Flight SQL — GizmoSQL/DuckDB, Doris, StarRocks), then pick the database under **Admin → Settings → Uploads** (schema e.g. `main`). Uploading a CSV creates a typed DuckDB table plus a Metabase model; appends via the table menu work too. Read-only backends (InfluxDB 3, Spice datasets, ROAPI) reject uploads with a clean error even if selected.
-
-### Connecting to InfluxDB 3
-
-Enable the token toggle, paste the admin token (in `.env` as `INFLUXDB3_TOKEN` after seeding), and set **Additional options** to `database=<your-db>` (forwarded as a gRPC header). Tip: add a schema-filters *exclusion* for `system` to keep InfluxDB's internal tables out of sync.
+Uploads are double-gated: tick **"Writable backend (enable CSV uploads &
+transforms)"** in the connection's advanced options, then pick the database
+under **Admin → Settings → Uploads** (schema e.g. `main`). Uploading a CSV
+creates a typed DuckDB table plus a Metabase model; appends via the table
+menu work too.
 
 ## Configuration
 
-When setting up the connection in Metabase, the driver registers under the name `:arrow-flight-sql` with `:sql-jdbc` as its parent. The main configuration properties include:
-
-- **Host**: (Default: localhost) – The server's hostname or IP address.
-- **Port**: (Default: 443) – The port to use for the connection.
-- **Authentication** – controlled by the *"Authenticate with a token instead of username/password"* toggle:
-  - *Toggle off (default)*: Username + Password → Flight handshake basic auth (GizmoSQL, Dremio, Doris, StarRocks, Denodo…).
-    - **Spice.ai API key**: leave Username empty, put the key in Password.
-    - **GizmoSQL external JWT**: set Username to the literal `token`, JWT in Password.
-  - *Toggle on*: Bearer token / PAT / API key → sent as `Authorization: Bearer …` (InfluxDB 3 tokens, Dremio PATs, pre-issued JWTs).
-  - *Anonymous*: leave all credential fields blank (ROAPI, kamu, Ballista, Spice.ai without auth).
-- **Catalog**: (Optional) - The name of the catalog to use.
-- **Advanced**: server CA certificate, mTLS client certificate/key (PEM secrets), connect timeout, and free-form additional JDBC options (`threadPoolSize`, `retainAuth`, `oauth.*` for OAuth 2.0 client-credentials/token-exchange, or any custom parameter — unknown parameters are forwarded to the server as gRPC headers, e.g. `database=<db>` for InfluxDB 3).
-- **Use Encryption**: (Default: true) – Enable or disable TLS. Switch off for local plaintext servers (the docker-compose demo does this explicitly).
-- **Disable Certificate Verification**: (Default: false) – Only enable for servers with self-signed certificates.
+- **Host**: (Default: localhost) – The GizmoSQL server's hostname or IP.
+- **Port**: (Default: 31337) – GizmoSQL's default Flight SQL port.
+- **Authentication** – controlled by the *"Authenticate with a token instead
+  of username/password"* toggle:
+  - *Toggle off (default)*: Username + Password → Flight handshake basic auth.
+    - **GizmoSQL external JWT**: set Username to the literal `token`, JWT in
+      Password.
+  - *Toggle on*: Bearer token → sent as `Authorization: Bearer …`.
+- **Catalog**: (Optional) – The catalog to scope sync to.
+- **Schemas**: include/exclude patterns applied during sync.
+- **Use Encryption**: (Default: true) – TLS on/off. Switch off for local
+  plaintext servers (the docker-compose demo does this explicitly).
+- **Disable Certificate Verification**: (Default: false) – Only for servers
+  with self-signed certificates.
+- **Advanced**: server CA certificate, mTLS client certificate/key (PEM
+  secrets), connect timeout, writable-backend toggle, and free-form
+  additional JDBC options (`threadPoolSize`, `retainAuth`, `oauth.*`, or any
+  custom parameter — unknown parameters are forwarded to the server as gRPC
+  headers).
 
 ## Project Structure
 
 ```
 .
 ├── src/metabase/driver/       # Driver source code
-│   └── arrow_flight_sql.clj
+│   └── gizmosql.clj
 ├── resources/                 # Plugin manifest
 │   └── metabase-plugin.yaml
 ├── scripts/                   # Automation scripts
 │   └── metabase_setup.py
 ├── gizmosql/                  # GizmoSQL configuration
 │   └── init.sql               # Test data (sales, hr, analytics schemas)
-├── spice/                     # Spice.ai configuration
-│   └── spicepod.yaml
-├── data/                      # Parquet files for Spice.ai
+├── test/                      # Metabase shared driver-harness tests
+├── tests/e2e/                 # pytest end-to-end suite
 ├── docker-compose.yaml        # Container orchestration
 └── CLAUDE.md                  # Development guide
 ```
 
-## End-to-End Testing
+## Testing
 
-The project includes comprehensive end-to-end testing:
+Two layers, both against a real GizmoSQL server:
+
+- **Driver test suite** (every push/PR): CI starts a `gizmodata/gizmosql`
+  service container and runs Metabase's shared driver harness — dataset
+  loading over Flight SQL, validated sync, MBQL known-answer queries — plus
+  unit tests for the connection-spec builder (`.github/workflows/build.yaml`).
+- **End-to-end suite** (weekly + on demand): deploys the full compose stack
+  and runs pytest against the live Metabase UI/API, covering connections and
+  auth shapes, the connector option matrix, dashboards across visualization
+  types, MBQL/segments/metrics/pivot, TLS/mTLS, OAuth, and uploads
+  (`.github/workflows/e2e.yml`).
+
+Locally:
 
 ```bash
 # Clean start (removes all data)
@@ -262,31 +236,22 @@ python scripts/metabase_setup.py
 python -m pytest tests/e2e -v
 ```
 
-The suite covers connections/auth shapes, the full connector option matrix, every dashboard card across 11 visualization types, metadata refreshes, MBQL/segments/metrics/pivot, TLS/mTLS, anonymous auth, and InfluxDB 3 (modules auto-skip when their optional stack isn't running).
+If using Claude Code, run `/e2e-test` for guided end-to-end testing.
 
-The setup script creates a test dashboard with:
-- **32 cards** with various chart types (scalar, bar, pie, line, area, table, gauge, funnel, scatter, progress)
-- **5 field filters** (Order Status, Country, Department, Marketing Channel, Date Range)
-- **3 test schemas** in GizmoSQL (sales, hr, analytics)
+## Releases
 
-### Claude Code Integration
-
-If using Claude Code, run `/e2e-test` for guided end-to-end testing instructions.
-
-## Features Tested
-
-- SQL Native queries
-- Graphical query editor
-- Database syncs
-- Field filters (single table and JOINs with table aliases)
-- Dashboard rendering with multiple concurrent queries
-- Connection pooling stability
-- Date/time type handling
+Semantic versioning with `vX.Y.Z` tags. To cut a release: move the
+`[Unreleased]` CHANGELOG section into a new version section, bump
+`version.txt` (and `project.clj`), commit, then
+`git push origin main vX.Y.Z`. The release workflow builds the per-Metabase
+jars, extracts that CHANGELOG section as release notes, and publishes the
+GitHub Release with the jars attached.
 
 ## Troubleshooting
 
 ### `Could not initialize class ...arrow.memory.RootAllocator`
-Metabase is running on JDK 24+ (the v0.63 image ships JDK 25) without the required Arrow JVM flags — see **Java / JVM requirements** above.
+Metabase is running on JDK 24+ (the v0.63 image ships JDK 25) without the
+required Arrow JVM flags — see **Java / JVM requirements** above.
 
 ### `podman compose` fails with `root@127.0.0.1: Permission denied`
 On Windows with Docker Desktop installed, `podman compose` delegates to
@@ -314,18 +279,12 @@ podman compose up -d metabase
 
 ## License
 
-Copyright © 2025-2026 Georvic Tur
+Copyright © 2026 GizmoData LLC.
+Portions copyright © 2025-2026 Georvic Tur (from the upstream
+[metabase-flightsql-driver](https://github.com/J0hnG4lt/metabase-flightsql-driver)).
 
 Licensed under the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0). See [LICENSE](LICENSE).
 
-## AI-Assisted Development
-
-This project was built with help from ChatGPT and Claude Code, along with reference to the Metabase repository and several of its existing drivers. While I'm not a Clojure developer by background, these tools made development much more approachable.
-
 ## Contributing
 
-Contributions are welcome! If you have suggestions or improvements, please open an issue or submit a pull request.
-
-## Contact
-
-For additional information or support, please open an issue in the repository or contact the maintainer at [georvic.tur@gmail.com].
+Contributions are welcome! Please open an issue or submit a pull request.

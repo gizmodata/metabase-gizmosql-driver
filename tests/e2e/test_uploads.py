@@ -1,10 +1,8 @@
 """CSV uploads through the driver against a writable backend (GizmoSQL).
 
 Uploads are double-gated: the driver advertises :uploads only when the
-connection detail `enable-uploads` is true (writable backends only), and
-Metabase's own uploads-settings site setting picks the target database.
-Read-only backends (the Spice connection) reject uploads with a clean 422
-even if the site setting points at them.
+connection detail `enable-uploads` is true, and Metabase's own
+uploads-settings site setting picks the target database.
 """
 import io
 import json
@@ -65,11 +63,8 @@ def uploads_on_gizmo(mb):
 
 
 def test_uploads_feature_gated_by_connection_detail(mb, uploads_on_gizmo):
-    dbs = mb.databases()
     _, gizmo_full = mb.get(f"/api/database/{uploads_on_gizmo}")
     assert "uploads" in (gizmo_full.get("features") or [])
-    assert "uploads" not in (dbs["flight"].get("features") or []), \
-        "read-only backend must not advertise uploads"
 
 
 def test_upload_query_append_roundtrip(mb, uploads_on_gizmo):
@@ -115,24 +110,3 @@ def test_upload_query_append_roundtrip(mb, uploads_on_gizmo):
             # in Browse data pointing at a dropped physical table
             mb.req("PUT", f"/api/table/{table_id}", {"visibility_type": "hidden"})
             mb.post(f"/api/database/{uploads_on_gizmo}/sync_schema")
-
-
-def test_upload_rejected_on_readonly_backend(mb, uploads_on_gizmo):
-    """Even if the site setting points at a non-writable connection, the
-    driver's per-connection gate makes Metabase reject the upload cleanly."""
-    dbs = mb.databases()
-    flight_id = dbs["flight"]["id"]
-    gizmo_id = uploads_on_gizmo
-    try:
-        status, _ = mb.req("PUT", "/api/setting/uploads-settings",
-                           {"value": {"db_id": flight_id, "schema_name": "public",
-                                      "table_prefix": None}})
-        assert status in (200, 204)
-        status, resp = multipart_post(mb.api_key, "/api/upload/csv", CSV,
-                                      extra_fields={"collection_id": "root"})
-        assert status == 422, (status, resp)
-        assert "not supported" in str((resp or {}).get("message", "")).lower()
-    finally:
-        mb.req("PUT", "/api/setting/uploads-settings",
-               {"value": {"db_id": gizmo_id, "schema_name": "main",
-                          "table_prefix": None}})

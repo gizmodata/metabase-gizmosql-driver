@@ -1,4 +1,4 @@
-name: Build Metabase arrow-flight-sql Driver
+name: Build Metabase GizmoSQL Driver
 
 on:
   push:
@@ -10,10 +10,10 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Set up Clojure + clj-kondo
-      uses: DeLaGuardo/setup-clojure@12.3
+      uses: DeLaGuardo/setup-clojure@13.6
       with:
         cli: 1.12.0.1479
         clj-kondo: 2026.04.15
@@ -33,18 +33,18 @@ jobs:
 
     steps:
     - name: Clone Metabase repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         repository: metabase/metabase
         ref: ${{ matrix.metabase-ref }}
         path: metabase
 
     - name: Checkout driver code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
-        path: metabase/modules/drivers/arrow-flight-sql
+        path: metabase/modules/drivers/gizmosql
 
-    - name: Register arrow-flight-sql as the only driver module
+    - name: Register gizmosql as the only driver module
       working-directory: ./metabase
       # Overwriting with a single-entry map (the pattern the ClickHouse driver
       # used) is robust across Metabase versions: building one driver does not
@@ -52,17 +52,17 @@ jobs:
       # modules/drivers (sqlite moved to core, druid removed, ...) can no
       # longer break us.
       run: |
-        echo '{:deps {metabase/arrow-flight-sql {:local/root "arrow-flight-sql"}}}' > modules/drivers/deps.edn
+        echo '{:deps {metabase/gizmosql {:local/root "gizmosql"}}}' > modules/drivers/deps.edn
         cat modules/drivers/deps.edn
 
     - name: Set up JDK 21
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v5
       with:
         distribution: 'temurin'
         java-version: '21'
 
     - name: Set up Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v7
       with:
         node-version: 'lts/*'
 
@@ -72,18 +72,18 @@ jobs:
         yarn --version
 
     - name: Set up Clojure
-      uses: DeLaGuardo/setup-clojure@12.3
+      uses: DeLaGuardo/setup-clojure@13.6
       with:
         cli: 1.12.0.1479
         github-token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Cache Maven + gitlibs
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: |
           ~/.m2/repository
           ~/.gitlibs
-        key: ${{ runner.os }}-driver-${{ matrix.metabase-ref }}-${{ hashFiles('metabase/modules/drivers/arrow-flight-sql/deps.edn', 'metabase/deps.edn') }}
+        key: ${{ runner.os }}-driver-${{ matrix.metabase-ref }}-${{ hashFiles('metabase/modules/drivers/gizmosql/deps.edn', 'metabase/deps.edn') }}
         restore-keys: |
           ${{ runner.os }}-driver-${{ matrix.metabase-ref }}-
 
@@ -91,20 +91,20 @@ jobs:
       working-directory: ./metabase
       run: |
         chmod +x ./bin/build-driver.sh
-        ./bin/build-driver.sh arrow-flight-sql
+        ./bin/build-driver.sh gizmosql
 
     - name: Rename jar per Metabase line
       run: |
         MB_LINE=$(echo "${{ matrix.metabase-ref }}" | sed -E 's/^v0\.([0-9]+).*/mb\1/')
         mkdir -p out
-        cp metabase/resources/modules/arrow-flight-sql.metabase-driver.jar \
-           "out/arrow-flight-sql.metabase-driver-${MB_LINE}.jar"
+        cp metabase/resources/modules/gizmosql.metabase-driver.jar \
+           "out/gizmosql.metabase-driver-${MB_LINE}.jar"
         ls -la out/
 
     - name: Upload driver artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
-        name: metabase-arrow-flight-sql-driver-${{ matrix.metabase-ref }}
+        name: metabase-gizmosql-driver-${{ matrix.metabase-ref }}
         path: out/*.jar
         if-no-files-found: error
 
@@ -129,39 +129,39 @@ jobs:
 
     steps:
     - name: Clone Metabase repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         repository: metabase/metabase
         ref: v0.63.1
         path: metabase
 
     - name: Checkout driver code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
-        path: metabase/modules/drivers/arrow-flight-sql
+        path: metabase/modules/drivers/gizmosql
 
     - name: Register driver module and test path
       working-directory: ./metabase
       run: |
-        echo '{:deps {metabase/arrow-flight-sql {:local/root "arrow-flight-sql"}}}' > modules/drivers/deps.edn
+        echo '{:deps {metabase/gizmosql {:local/root "gizmosql"}}}' > modules/drivers/deps.edn
         # insert our test dir into the :drivers-dev :extra-paths vector
-        sed -i 's|"modules/drivers/athena/test"|"modules/drivers/arrow-flight-sql/test"\n    "modules/drivers/athena/test"|' deps.edn
-        grep -n "arrow-flight-sql/test" deps.edn
+        sed -i 's|"modules/drivers/athena/test"|"modules/drivers/gizmosql/test"\n    "modules/drivers/athena/test"|' deps.edn
+        grep -n "gizmosql/test" deps.edn
 
     - name: Set up JDK 21
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v5
       with:
         distribution: 'temurin'
         java-version: '21'
 
     - name: Set up Clojure
-      uses: DeLaGuardo/setup-clojure@12.3
+      uses: DeLaGuardo/setup-clojure@13.6
       with:
         cli: 1.12.0.1479
         github-token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Cache Maven + gitlibs
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: |
           ~/.m2/repository
@@ -173,15 +173,12 @@ jobs:
     - name: Run driver test namespace via the shared harness
       working-directory: ./metabase
       env:
-        DRIVERS: arrow-flight-sql
-        MB_ARROW_FLIGHT_SQL_TEST_HOST: localhost
-        MB_ARROW_FLIGHT_SQL_TEST_PORT: "31337"
-        MB_ARROW_FLIGHT_SQL_TEST_USER: gizmosql
-        MB_ARROW_FLIGHT_SQL_TEST_PASSWORD: gizmosql_password
+        DRIVERS: gizmosql
+        MB_GIZMOSQL_TEST_HOST: localhost
+        MB_GIZMOSQL_TEST_PORT: "31337"
+        MB_GIZMOSQL_TEST_USER: gizmosql
+        MB_GIZMOSQL_TEST_PASSWORD: gizmosql_password
       run: |
-        clojure -X:dev:drivers:drivers-dev:test :only '[metabase.driver.arrow-flight-sql-test]'
+        clojure -X:dev:drivers:drivers-dev:test :only '[metabase.driver.gizmosql-test]'
 
-  # NOTE: release asset attachment lives in release-please.yml, not here.
-  # A `release: published` trigger would never fire, because GitHub does not
-  # start workflows from events raised by the default GITHUB_TOKEN that
-  # release-please uses to create the release.
+  # NOTE: releases are cut by release.yaml on vX.Y.Z tag pushes.

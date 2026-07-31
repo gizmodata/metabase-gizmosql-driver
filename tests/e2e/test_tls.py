@@ -1,10 +1,10 @@
 """TLS/mTLS via the docker-compose.tls.yaml profile. Cert paths are
-container-local to Metabase (/opt/flightsql-tls)."""
+container-local to Metabase (/opt/gizmosql-tls)."""
 from conftest import requires_tls_stack
 
 pytestmark = requires_tls_stack
 
-TLS_DIR = "/opt/flightsql-tls"
+TLS_DIR = "/opt/gizmosql-tls"
 BASE = {"port": 31337, "username": "gizmosql", "password": "gizmosql_password",
         "use-token": False, "useEncryption": True}
 
