@@ -101,7 +101,7 @@ a database of type **GizmoSQL** in **Admin → Databases**.
    Metabase startup)
 
    ```bash
-   podman exec metabase curl -s http://localhost:3000/api/health
+   podman compose exec metabase curl -s http://localhost:3000/api/health
    ```
 
 4. Run the automated setup script
@@ -261,12 +261,12 @@ instead: `pip install podman-compose`, then `podman-compose up -d`.
 
 ### Check Metabase logs
 ```bash
-podman logs metabase 2>&1 | tail -100
+podman compose logs metabase 2>&1 | tail -100
 ```
 
 ### Check connection pool status
 ```bash
-podman logs metabase 2>&1 | grep "connections:"
+podman compose logs metabase 2>&1 | grep "connections:"
 ```
 
 ### Rebuild driver after code changes

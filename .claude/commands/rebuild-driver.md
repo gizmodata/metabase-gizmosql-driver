@@ -20,10 +20,10 @@ Wait for the build to finish (~30s):
 
 ```bash
 for i in {1..12}; do
-  podman ps --format '{{.Names}}' | grep -q '^builder' || break
+  podman compose ps builder 2>/dev/null | grep -qi running || break
   sleep 5
 done
-podman logs builder 2>&1 | tail -5
+podman compose logs builder 2>&1 | tail -5
 ```
 
 The builder exits when done; its last lines should show `Created /builder/target/metabase-gizmosql-driver-1.0.0-SNAPSHOT-standalone.jar`.
@@ -40,11 +40,11 @@ The compose path loads driver *source* at startup — compile errors surface her
 
 ```bash
 for i in {1..40}; do
-  if podman exec metabase curl -s -f "http://localhost:3000/api/health" >/dev/null 2>&1; then break; fi
+  if podman compose exec metabase curl -s -f "http://localhost:3000/api/health" >/dev/null 2>&1; then break; fi
   sleep 5
 done
-podman logs metabase 2>&1 | grep -iE "gizmosql|plugin" | tail -20
-podman logs metabase 2>&1 | grep -iE "error|exception" | grep -i "arrow" | tail -10
+podman compose logs metabase 2>&1 | grep -iE "gizmosql|plugin" | tail -20
+podman compose logs metabase 2>&1 | grep -iE "error|exception" | grep -i "arrow" | tail -10
 ```
 
 **Success**: a "registered plugin" / "Loading plugin" line for gizmosql and no arrow-related exceptions.
@@ -56,6 +56,6 @@ If `.env` exists, run a query through an existing card:
 
 ```bash
 API_KEY=$(grep METABASE_API_KEY .env | cut -d'=' -f2)
-podman exec metabase curl -s -H "x-api-key: $API_KEY" \
+podman compose exec metabase curl -s -H "x-api-key: $API_KEY" \
   "http://localhost:3000/api/database" | python -c "import sys,json; d=json.load(sys.stdin); print([x['name'] for x in d.get('data',d)])"
 ```

@@ -16,7 +16,7 @@ Always load the `driver-dev` skill before touching driver code — it holds the 
 - **Dialect**: GizmoSQL executes DuckDB SQL (SQLite backend possible but not the target); date functions and upload literals assume DuckDB.
 - **Auth matrix**: user-password Flight handshake | bearer token | GizmoSQL external JWT (`user=token`) ; mTLS via pem-cert secrets; `additional-options` passes `oauth.*`/`retainAuth`/custom gRPC headers (unknown params become headers).
 - **Compatibility discipline**: before any Metabase bump, read `docs/developers-guide/driver-changelog.md` at the target ref (`/upgrade-metabase`). Unknown feature keywords throw at namespace load; removed defmultis kill the plugin.
-- **Verification**: compile errors on the compose path appear only in `podman logs metabase` at plugin load. Nothing counts as done without `/rebuild-driver` + `/e2e-test` (or the API smoke checks in the `metabase-api` skill).
+- **Verification**: compile errors on the compose path appear only in `podman compose logs metabase` at plugin load. Nothing counts as done without `/rebuild-driver` + `/e2e-test` (or the API smoke checks in the `metabase-api` skill).
 
 ## How you work
 

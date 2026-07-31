@@ -42,7 +42,7 @@ This starts:
 
 ```bash
 for i in {1..60}; do
-  if podman exec metabase curl -s -f "http://localhost:3000/api/health" >/dev/null 2>&1; then
+  if podman compose exec metabase curl -s -f "http://localhost:3000/api/health" >/dev/null 2>&1; then
     echo "Metabase is ready!"
     break
   fi
@@ -74,7 +74,7 @@ Or test via API (read API key from .env and use it directly):
 API_KEY=$(grep METABASE_API_KEY .env | cut -d'=' -f2)
 
 # Validate dashboard exists with expected cards and parameters
-podman exec metabase curl -s -H "x-api-key: $API_KEY" \
+podman compose exec metabase curl -s -H "x-api-key: $API_KEY" \
   "http://localhost:3000/api/dashboard/2" | python -c "
 import sys,json
 d=json.load(sys.stdin)
@@ -133,7 +133,7 @@ Optional stacks widen coverage (TLS/mTLS, OAuth) — see
 ### 8. Verify connection pool health
 
 ```bash
-podman logs metabase 2>&1 | grep -i "hash.*changed" | tail -5
+podman compose logs metabase 2>&1 | grep -i "hash.*changed" | tail -5
 ```
 
 **Expected**: No output (no "Hash of database details changed" warnings). If you see these warnings, the connection pooling fix in the driver may have regressed.
@@ -160,17 +160,17 @@ This is a known issue on Windows with podman. The containers are still removed s
 
 ### Check Metabase logs
 ```bash
-podman logs metabase 2>&1 | tail -100
+podman compose logs metabase 2>&1 | tail -100
 ```
 
 ### Check for connection pool issues
 ```bash
-podman logs metabase 2>&1 | grep -i "hash.*changed\|connections:"
+podman compose logs metabase 2>&1 | grep -i "hash.*changed\|connections:"
 ```
 
 ### Check GizmoSQL logs
 ```bash
-podman logs gizmosql 2>&1 | tail -50
+podman compose logs gizmosql 2>&1 | tail -50
 ```
 
 ### Restart Metabase after driver changes

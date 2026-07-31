@@ -31,15 +31,15 @@ gizmosql/init.sql                  # 3 catalogs (memory/warehouse/staging), sale
 
 ## Build truth
 
-Two build paths produce different artifacts — see the driver-dev skill. Compose uses the `builder` (lein) jar and **compile errors only appear in `podman logs metabase` at plugin load**; CI/releases use `bin/build-driver.sh` inside a Metabase checkout.
+Two build paths produce different artifacts — see the driver-dev skill. Compose uses the `builder` (lein) jar and **compile errors only appear in `podman compose logs metabase` at plugin load**; CI/releases use `bin/build-driver.sh` inside a Metabase checkout.
 
 ## Everyday commands
 
 ```bash
 podman compose up -d                      # start everything
 python scripts/metabase_setup.py          # setup + test dashboard; writes .env
-podman logs metabase 2>&1 | tail -100
-podman logs metabase 2>&1 | grep -i "hash.*changed\|connections:"   # pool health
+podman compose logs metabase 2>&1 | tail -100
+podman compose logs metabase 2>&1 | grep -i "hash.*changed\|connections:"   # pool health
 ```
 
 Metabase: http://localhost:3000 (admin@metabase.local / Metabase123!)

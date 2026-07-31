@@ -12,7 +12,7 @@ description: Develop and debug the Metabase GizmoSQL driver — edit/rebuild/red
 | `bin/build-driver.sh gizmosql` inside a Metabase checkout | **CI / releases** | AOT-compiled `gizmosql.metabase-driver.jar` |
 | `lein uberjar` via the compose `builder` service | **local compose demo** | driver *source* + GizmoSQL JDBC classes; Metabase compiles the namespace at plugin load |
 
-Consequence: the compose path surfaces compile errors only in **Metabase's startup logs** (`podman logs metabase`), not at build time. After any driver edit, always check the log for `gizmosql` load errors before testing behavior.
+Consequence: the compose path surfaces compile errors only in **Metabase's startup logs** (`podman compose logs metabase`), not at build time. After any driver edit, always check the log for `gizmosql` load errors before testing behavior.
 
 ## Rebuild/redeploy cycle (compose)
 
@@ -20,7 +20,7 @@ Consequence: the compose path surfaces compile errors only in **Metabase's start
 podman compose down metabase builder
 podman compose up -d builder        # ~30s: rebuilds the jar
 podman compose up -d metabase
-podman logs metabase 2>&1 | grep -i "plugin\|gizmosql" | tail -20
+podman compose logs metabase 2>&1 | grep -i "plugin\|gizmosql" | tail -20
 ```
 
 Or run the `/rebuild-driver` command.

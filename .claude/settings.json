@@ -6,7 +6,7 @@
       "Bash(podman ps:*)",
       "Bash(podman machine start:*)",
       "Bash(podman network inspect:*)",
-      "Bash(podman exec metabase curl:*)",
+      "Bash(podman compose exec metabase curl:*)",
       "Bash(python:*)",
       "Bash(curl:*)",
       "Bash(gh api:*)",

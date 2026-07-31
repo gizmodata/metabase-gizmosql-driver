@@ -16,7 +16,6 @@
 services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.7
-    container_name: keycloak
     hostname: keycloak
     command: ["start-dev", "--import-realm"]
     environment:
@@ -33,7 +32,6 @@ services:
 
   gizmosql-oauth:
     image: gizmodata/gizmosql:v1.35.1
-    container_name: gizmosql-oauth
     hostname: gizmosql-oauth
     volumes:
       - ./oauth/signing-cert.pem:/opt/oauth/signing-cert.pem:ro

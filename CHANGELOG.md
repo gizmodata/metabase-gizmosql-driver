@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Compose services no longer set a fixed `container_name`, so the dev stack
+  can coexist with other GizmoSQL containers on the same machine; docs and
+  commands now use compose-scoped `podman compose logs/exec <service>`.
+
 ## [1.0.0] - 2026-07-31
 
 First GizmoData release. This project began as a fork of

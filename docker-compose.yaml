@@ -15,7 +15,6 @@ services:
 
   metabase:
     image: metabase/metabase:v0.63.1.6
-    container_name: metabase
     hostname: metabase
     depends_on:
       - postgres
@@ -63,7 +62,6 @@ services:
 
   postgres:
     image: postgres:17.4
-    container_name: postgres
     hostname: postgres
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -78,7 +76,6 @@ services:
     # Pinned (releases are near-weekly); a -slim and an LTS channel
     # (gizmodata/gizmosql-lts) also exist.
     image: gizmodata/gizmosql:v1.35.1
-    container_name: gizmosql
     hostname: gizmosql
     volumes:
       - type: bind
@@ -106,7 +103,6 @@ services:
   # e2e suite.
   maildev:
     image: maildev/maildev:2.2.1
-    container_name: maildev
     hostname: maildev
     ports:
       - "1080:1080"

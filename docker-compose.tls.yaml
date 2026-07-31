@@ -21,7 +21,6 @@ services:
 
   gizmosql-tls:
     image: gizmodata/gizmosql:v1.35.1
-    container_name: gizmosql-tls
     hostname: gizmosql-tls
     volumes:
       - ./tls/server-cert.pem:/opt/gizmosql/tls/cert0.pem:ro
@@ -42,7 +41,6 @@ services:
 
   gizmosql-mtls:
     image: gizmodata/gizmosql:v1.35.1
-    container_name: gizmosql-mtls
     hostname: gizmosql-mtls
     volumes:
       - ./tls/server-cert.pem:/opt/gizmosql/tls/cert0.pem:ro
