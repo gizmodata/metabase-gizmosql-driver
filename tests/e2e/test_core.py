@@ -28,6 +28,6 @@ def test_filtered_query_via_dashboard_parameter(mb):
                    for pm in dc.get("parameter_mappings") or []
                    if pm.get("parameter_id") == "status")
     _, res = mb.post(f"/api/card/{card_id}/query", {
-        "parameters": [{"type": "string/=", "value": ["Delivered"],
+        "parameters": [{"id": "status", "type": "string/=", "value": ["Delivered"],
                         "target": ["dimension", ["template-tag", "status"]]}]})
     assert res.get("status") == "completed" and len(res["data"]["rows"]) > 0

@@ -16,86 +16,26 @@ permissions:
   contents: write
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        # One build per supported Metabase release line. Keep in sync with
-        # build.yaml and the compatibility table in README.md.
-        metabase-ref: [ v0.62.5, v0.63.1.6 ]
+  # Test gate: the FULL suite (lint, per-Metabase builds, driver-test-suite,
+  # and the e2e stack) runs on the tagged commit itself. Never rely on "CI
+  # passed on main" — `git push origin main vX.Y.Z` starts both workflows at
+  # once, so nothing would wait. Both must pass before anything is published.
+  ci:
+    uses: ./.github/workflows/build.yaml
+    with:
+      ref: ${{ github.event.inputs.tag || github.ref }}
+    permissions:
+      contents: read
 
-    steps:
-    - name: Clone Metabase repository
-      uses: actions/checkout@v7
-      with:
-        repository: metabase/metabase
-        ref: ${{ matrix.metabase-ref }}
-        path: metabase
-
-    - name: Checkout driver code
-      uses: actions/checkout@v7
-      with:
-        ref: ${{ github.event.inputs.tag || github.ref }}
-        path: metabase/modules/drivers/gizmosql
-
-    - name: Register gizmosql as the only driver module
-      working-directory: ./metabase
-      run: |
-        echo '{:deps {metabase/gizmosql {:local/root "gizmosql"}}}' > modules/drivers/deps.edn
-
-    - name: Set up JDK 21
-      uses: actions/setup-java@v5
-      with:
-        distribution: 'temurin'
-        java-version: '21'
-
-    - name: Set up Node.js
-      uses: actions/setup-node@v7
-      with:
-        node-version: 'lts/*'
-
-    - name: Install Yarn 1.x
-      run: npm install -g yarn@1
-
-    - name: Set up Clojure
-      uses: DeLaGuardo/setup-clojure@13.6.1
-      with:
-        cli: 1.12.0.1479
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Cache Maven + gitlibs
-      uses: actions/cache@v6
-      with:
-        path: |
-          ~/.m2/repository
-          ~/.gitlibs
-        key: ${{ runner.os }}-driver-${{ matrix.metabase-ref }}-${{ hashFiles('metabase/modules/drivers/gizmosql/deps.edn', 'metabase/deps.edn') }}
-        restore-keys: |
-          ${{ runner.os }}-driver-${{ matrix.metabase-ref }}-
-
-    - name: Build driver
-      working-directory: ./metabase
-      run: |
-        chmod +x ./bin/build-driver.sh
-        ./bin/build-driver.sh gizmosql
-
-    - name: Rename jar per Metabase line
-      run: |
-        MB_LINE=$(echo "${{ matrix.metabase-ref }}" | sed -E 's/^v0\.([0-9]+).*/mb\1/')
-        mkdir -p out
-        cp metabase/resources/modules/gizmosql.metabase-driver.jar \
-           "out/gizmosql.metabase-driver-${MB_LINE}.jar"
-
-    - name: Upload driver artifact
-      uses: actions/upload-artifact@v7
-      with:
-        name: release-jar-${{ matrix.metabase-ref }}
-        path: out/*.jar
-        if-no-files-found: error
+  e2e:
+    uses: ./.github/workflows/e2e.yml
+    with:
+      ref: ${{ github.event.inputs.tag || github.ref }}
+    permissions:
+      contents: read
 
   release:
-    needs: build
+    needs: [ ci, e2e ]
     runs-on: ubuntu-latest
     steps:
     - name: Checkout driver code
@@ -129,10 +69,11 @@ jobs:
         fi
         cat release-notes.md
 
+    # The per-Metabase jars built (and tested) by the ci gate in this run.
     - name: Download built jars
       uses: actions/download-artifact@v8
       with:
-        pattern: release-jar-*
+        pattern: metabase-gizmosql-driver-*
         merge-multiple: true
         path: out
 

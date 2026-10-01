@@ -28,9 +28,16 @@ def test_query_caching_second_run_is_cached(mb, root_cache_config):
     card_id = next(dc["card_id"] for dc in dash["dashcards"] if dc.get("card_id"))
     _, r1 = mb.post(f"/api/card/{card_id}/query")
     assert r1.get("status") == "completed"
-    _, r2 = mb.post(f"/api/card/{card_id}/query")
-    assert r2.get("status") == "completed"
-    assert r2.get("cached"), "second execution was not served from cache"
+    # Metabase saves the result to the cache after responding, so a re-run
+    # issued immediately can still miss; allow a few seconds for the write.
+    deadline = time.time() + 15
+    while True:
+        _, r2 = mb.post(f"/api/card/{card_id}/query")
+        assert r2.get("status") == "completed"
+        if r2.get("cached") or time.time() > deadline:
+            break
+        time.sleep(1)
+    assert r2.get("cached"), "re-execution was never served from cache"
 
 
 def test_xray_table_generates_dashboard(mb):
@@ -60,7 +67,8 @@ def test_alert_email_delivery(mb):
     assert status == 200
 
     def mail_count():
-        with urllib.request.urlopen("http://localhost:1080/email", timeout=10) as r:
+        # MailDev 3 serves its REST API under /api (2.x used /email).
+        with urllib.request.urlopen("http://localhost:1080/api/email", timeout=10) as r:
             return len(json.load(r))
 
     before = mail_count()

@@ -24,9 +24,9 @@ resources/metabase-plugin.yaml     # manifest: auth toggle, secrets, schema-filt
 scripts/metabase_setup.py          # e2e: admin, API key -> .env, connection, dashboard
 docker-compose.yaml                # metabase + postgres + gizmosql + maildev + builder
 gizmosql/init.sql                  # 3 catalogs (memory/warehouse/staging), sales/hr/analytics
-.github/workflows/build.yaml       # lint + matrix build {v0.62.5, v0.63.1} + driver-test-suite
-.github/workflows/release.yaml     # vX.Y.Z tag push -> jars + GitHub Release from CHANGELOG
-.github/workflows/e2e.yml          # weekly/on-demand full-stack pytest suite
+.github/workflows/build.yaml       # lint + matrix build {v0.62.19.5, v0.63.19.1} + driver-test-suite
+.github/workflows/release.yaml     # vX.Y.Z tag -> gate (build.yaml + e2e.yml on the tag) -> GitHub Release
+.github/workflows/e2e.yml          # full-stack pytest suite: weekly, on demand, and the release gate
 ```
 
 ## Build truth
@@ -48,9 +48,11 @@ Metabase: http://localhost:3000 (admin@metabase.local / Metabase123!)
 
 Keep-a-Changelog + semver tags (no release-please). Flow: move `[Unreleased]`
 into a `## [X.Y.Z] - YYYY-MM-DD` section, bump `version.txt` + `project.clj`,
-commit, `git push origin main vX.Y.Z`. release.yaml verifies version.txt
-matches the tag, builds per-Metabase jars, and publishes the GitHub Release
-with the CHANGELOG section as notes.
+commit, `git push origin main vX.Y.Z`. release.yaml first runs build.yaml
+(lint, per-Metabase jars, driver-test-suite) and e2e.yml on the tagged commit
+as reusable workflows; only if both pass does it verify version.txt matches
+the tag and publish the GitHub Release with those tested jars and the
+CHANGELOG section as notes. A red e2e blocks the release — fix it, don't bypass.
 
 ## MCP
 

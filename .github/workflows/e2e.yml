@@ -2,10 +2,18 @@ name: e2e
 
 # Deploys Metabase + the driver via the repo's compose/scripts on a Linux
 # runner, then runs the pytest e2e suite against GizmoSQL. Heavy — runs
-# weekly and on demand, not on every PR (build.yaml + the driver-test-suite
-# cover PRs). Exercises the base GizmoSQL profile plus TLS/mTLS and OAuth.
+# weekly, on demand, and as release.yaml's gate on every vX.Y.Z tag, not on
+# every PR (build.yaml + the driver-test-suite cover PRs). Exercises the base
+# GizmoSQL profile plus TLS/mTLS and OAuth.
 on:
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      ref:
+        description: Driver ref to test (defaults to the triggering commit)
+        type: string
+        required: false
+        default: ''
   schedule:
     - cron: "0 6 * * 1"   # Mondays 06:00 UTC
 
@@ -20,6 +28,8 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -40,7 +50,7 @@ jobs:
 
       - name: Wait for Metabase health
         run: |
-          for i in $(seq 1 60); do
+          for _ in $(seq 1 60); do
             if curl -sf http://localhost:3000/api/health >/dev/null; then echo "healthy"; exit 0; fi
             sleep 10
           done

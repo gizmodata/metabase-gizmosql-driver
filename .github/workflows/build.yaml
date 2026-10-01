@@ -5,6 +5,14 @@ on:
     branches: [ main ]
   pull_request:
   workflow_dispatch:
+  # release.yaml calls this as its test gate on the tagged commit.
+  workflow_call:
+    inputs:
+      ref:
+        description: Driver ref to test (defaults to the triggering commit)
+        type: string
+        required: false
+        default: ''
 
 jobs:
   lint:
@@ -13,10 +21,10 @@ jobs:
     - uses: actions/checkout@v7
 
     - name: Set up Clojure + clj-kondo
-      uses: DeLaGuardo/setup-clojure@13.6.1
+      uses: DeLaGuardo/setup-clojure@13.7.0
       with:
-        cli: 1.12.0.1479
-        clj-kondo: 2026.04.15
+        cli: 1.12.6.1673
+        clj-kondo: 2026.08.04
         github-token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Lint driver source
@@ -29,7 +37,7 @@ jobs:
       matrix:
         # One build per supported Metabase release line. Keep in sync with the
         # compatibility table in README.md. 62.x EOLs 2026-09-01.
-        metabase-ref: [ v0.62.5, v0.63.1.6 ]
+        metabase-ref: [ v0.62.19.5, v0.63.19.1 ]
 
     steps:
     - name: Clone Metabase repository
@@ -42,6 +50,7 @@ jobs:
     - name: Checkout driver code
       uses: actions/checkout@v7
       with:
+        ref: ${{ inputs.ref }}
         path: metabase/modules/drivers/gizmosql
 
     - name: Register gizmosql as the only driver module
@@ -56,7 +65,7 @@ jobs:
         cat modules/drivers/deps.edn
 
     - name: Set up JDK 21
-      uses: actions/setup-java@v5
+      uses: actions/setup-java@v6
       with:
         distribution: 'temurin'
         java-version: '21'
@@ -72,9 +81,9 @@ jobs:
         yarn --version
 
     - name: Set up Clojure
-      uses: DeLaGuardo/setup-clojure@13.6.1
+      uses: DeLaGuardo/setup-clojure@13.7.0
       with:
-        cli: 1.12.0.1479
+        cli: 1.12.6.1673
         github-token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Cache Maven + gitlibs
@@ -117,7 +126,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       gizmosql:
-        image: gizmodata/gizmosql:v1.35.1
+        image: gizmodata/gizmosql:v1.40.0
         env:
           TLS_ENABLED: "0"
           GIZMOSQL_USERNAME: gizmosql
@@ -132,12 +141,13 @@ jobs:
       uses: actions/checkout@v7
       with:
         repository: metabase/metabase
-        ref: v0.63.1
+        ref: v0.63.19.1
         path: metabase
 
     - name: Checkout driver code
       uses: actions/checkout@v7
       with:
+        ref: ${{ inputs.ref }}
         path: metabase/modules/drivers/gizmosql
 
     - name: Register driver module and test path
@@ -149,15 +159,15 @@ jobs:
         grep -n "gizmosql/test" deps.edn
 
     - name: Set up JDK 21
-      uses: actions/setup-java@v5
+      uses: actions/setup-java@v6
       with:
         distribution: 'temurin'
         java-version: '21'
 
     - name: Set up Clojure
-      uses: DeLaGuardo/setup-clojure@13.6.1
+      uses: DeLaGuardo/setup-clojure@13.7.0
       with:
-        cli: 1.12.0.1479
+        cli: 1.12.6.1673
         github-token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Cache Maven + gitlibs
@@ -166,9 +176,9 @@ jobs:
         path: |
           ~/.m2/repository
           ~/.gitlibs
-        key: ${{ runner.os }}-driver-tests-v0.63.1-${{ hashFiles('metabase/deps.edn') }}
+        key: ${{ runner.os }}-driver-tests-v0.63.19.1-${{ hashFiles('metabase/deps.edn') }}
         restore-keys: |
-          ${{ runner.os }}-driver-tests-v0.63.1-
+          ${{ runner.os }}-driver-tests-v0.63.19.1-
 
     - name: Run driver test namespace via the shared harness
       working-directory: ./metabase
@@ -181,4 +191,5 @@ jobs:
       run: |
         clojure -X:dev:drivers:drivers-dev:test :only '[metabase.driver.gizmosql-test]'
 
-  # NOTE: releases are cut by release.yaml on vX.Y.Z tag pushes.
+  # NOTE: releases are cut by release.yaml on vX.Y.Z tag pushes; it calls this
+  # workflow (and e2e.yml) as its test gate and publishes the jars built here.

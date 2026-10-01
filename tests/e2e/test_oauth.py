@@ -45,23 +45,41 @@ def jwt_details(jwt):
     return {**GIZMO_OAUTH, "username": "token", "password": jwt}
 
 
+# Metabase's native-query API executes a statement and then fails it with
+# "Select statement did not produce a ResultSet" when it returns no rows-set,
+# even though the statement ran. So DDL/plain DML is never "completed" there;
+# role checks use INSERT ... RETURNING (a write that yields a result set) and
+# assert on GizmoSQL's own readonly-session rejection text.
+NO_RESULT_SET = "did not produce a ResultSet"
+READONLY_REJECTION = "has a readonly session and cannot run statements that modify state"
+
+
 def test_keycloak_jwt_admin_connects_and_writes(mb, db_factory):
-    jwt = keycloak_token("gizmosql-m2m", "m2m-demo-secret-0123456789")
-    db_id = db_factory("t-kc-admin", jwt_details(jwt))
+    jwt = keycloak_token(client_id="gizmosql-m2m", secret="m2m-demo-secret-0123456789")
+    db_id = db_factory("t-kc-admin", jwt_details(jwt=jwt))
     res = mb.native(db_id, "SELECT COUNT(*) FROM sales.orders")
     assert res.get("status") == "completed" and res["data"]["rows"][0][0] > 0
-    res = mb.native(db_id, "CREATE TABLE main.oauth_admin_probe(id INT)")
-    assert res.get("status") == "completed", res.get("error")
-    mb.native(db_id, "DROP TABLE main.oauth_admin_probe")
+    res = mb.native(db_id, "CREATE OR REPLACE TABLE main.oauth_admin_probe(id INT)")
+    assert NO_RESULT_SET in (res.get("error") or ""), res.get("error")
+    try:
+        res = mb.native(db_id, "INSERT INTO main.oauth_admin_probe VALUES (42) RETURNING id")
+        assert res.get("status") == "completed", res.get("error")
+        assert res["data"]["rows"] == [[42]]
+    finally:
+        mb.native(db_id, "DROP TABLE IF EXISTS main.oauth_admin_probe")
 
 
 def test_keycloak_jwt_readonly_role_is_select_only(mb, db_factory):
-    jwt = keycloak_token("gizmosql-readonly", "readonly-demo-secret-0123456789")
-    db_id = db_factory("t-kc-readonly", jwt_details(jwt))
+    jwt = keycloak_token(client_id="gizmosql-readonly", secret="readonly-demo-secret-0123456789")
+    db_id = db_factory("t-kc-readonly", jwt_details(jwt=jwt))
     res = mb.native(db_id, "SELECT COUNT(*) FROM sales.customers")
     assert res.get("status") == "completed" and res["data"]["rows"][0][0] > 0
-    res = mb.native(db_id, "CREATE TABLE main.readonly_probe(id INT)")
-    assert res.get("status") == "failed", "readonly role unexpectedly allowed DDL"
+    for sql in ("CREATE TABLE main.readonly_probe(id INT)",
+                "INSERT INTO sales.customers SELECT * FROM sales.customers WHERE false"
+                " RETURNING customer_id"):
+        res = mb.native(db_id, sql)
+        assert res.get("status") == "failed", f"readonly role unexpectedly ran: {sql}"
+        assert READONLY_REJECTION in (res.get("error") or ""), res.get("error")
 
 
 def test_tampered_jwt_rejected(mb, db_factory):

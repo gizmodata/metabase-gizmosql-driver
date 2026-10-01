@@ -1,6 +1,6 @@
 {:paths ["src" "resources"]
 
- :deps {org.clojure/clojure {:mvn/version "1.11.1"}
+ :deps {org.clojure/clojure {:mvn/version "1.12.3"}
         ;; GizmoData's fork of the Apache Arrow Flight SQL JDBC driver
         ;; (shaded jar). Adds jdbc:gizmosql:// URLs, timestamp-TZ fixes,
         ;; getIndexInfo()/COLUMN_DEF metadata via _gizmosql_system, and

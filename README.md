@@ -26,6 +26,7 @@ CI builds one jar per supported Metabase release line (see release assets):
 
 | Driver release | Metabase | GizmoSQL JDBC | Notes |
 |---|---|---|---|
+| Unreleased | v0.62.19.5 (`-mb62` jar), v0.63.19.1 (`-mb63` jar) | 1.7.0 | Metabase 62.x reached EOL 2026-09-01 |
 | 1.0.0 | v0.62.5 (`-mb62` jar), v0.63.1 (`-mb63` jar) | 1.7.0 | MB 63 image runs JDK 25 — see *Java / JVM requirements* |
 
 ## Java / JVM requirements (important for Metabase 63+)

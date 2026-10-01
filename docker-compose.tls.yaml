@@ -20,7 +20,7 @@ services:
       - ./tls:/opt/gizmosql-tls:ro
 
   gizmosql-tls:
-    image: gizmodata/gizmosql:v1.35.1
+    image: gizmodata/gizmosql:v1.40.0
     hostname: gizmosql-tls
     volumes:
       - ./tls/server-cert.pem:/opt/gizmosql/tls/cert0.pem:ro
@@ -40,7 +40,7 @@ services:
       - metanet1
 
   gizmosql-mtls:
-    image: gizmodata/gizmosql:v1.35.1
+    image: gizmodata/gizmosql:v1.40.0
     hostname: gizmosql-mtls
     volumes:
       - ./tls/server-cert.pem:/opt/gizmosql/tls/cert0.pem:ro

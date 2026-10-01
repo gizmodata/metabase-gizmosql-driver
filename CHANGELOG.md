@@ -7,7 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Releases are now gated on the full test suite: `release.yaml` runs
+  `build.yaml` (lint, per-Metabase builds, driver-test-suite) and the e2e
+  stack (`e2e.yml`) on the tagged commit and publishes only if both pass,
+  attaching the jars that gate built. Previously no tests ran before a release,
+  and the weekly e2e run had been failing since August unnoticed.
+- e2e OAuth role tests: the admin write check always failed because Metabase's
+  native-query API reports any statement without a result set (DDL, plain
+  DML) as failed even though it ran, and the readonly check passed trivially
+  for the same reason. Both now use `INSERT ... RETURNING` and assert on
+  GizmoSQL's readonly-session rejection message.
+- e2e suite adapted to Metabase 0.63.19 API changes (card query parameters
+  need an `id`, segment definitions must be full queries, segments are
+  archived via `PUT`, cache writes land after the response) and MailDev 3's
+  `/api/email` endpoint.
+
 ### Changed
+
+- Dependency bumps: Metabase build/test targets v0.62.19.5 and v0.63.19.1
+  (compose image v0.63.19.1), GizmoSQL v1.40.0, Clojure 1.12.3 (matches
+  Metabase), Keycloak 26.8, Postgres 17.10, MailDev 3.0.0; CI actions
+  setup-java v6, setup-clojure 13.7.0, Clojure CLI 1.12.6.1673,
+  clj-kondo 2026.08.04.
 
 - Compose services no longer set a fixed `container_name`, so the dev stack
   can coexist with other GizmoSQL containers on the same machine; docs and

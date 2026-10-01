@@ -76,8 +76,11 @@ def test_segment_roundtrip(mb, gizmo_meta):
     status_f = gizmo_meta["fields"]["status"]
     status, seg = mb.post("/api/segment", {
         "name": "e2e-delivered", "table_id": gizmo_meta["orders"]["id"],
-        "definition": {"source-table": gizmo_meta["orders"]["id"],
-                       "filter": ["=", ["field", status_f["id"], None], "Delivered"]}})
+        # Metabase >= 0.63.19 wants a full query here, not a bare inner query.
+        "definition": {"type": "query", "database": gizmo_meta["db_id"],
+                       "query": {"source-table": gizmo_meta["orders"]["id"],
+                                 "filter": ["=", ["field", status_f["id"], None],
+                                            "Delivered"]}}})
     assert status == 200 and seg.get("id")
     try:
         _, res = mb.post("/api/dataset", {
@@ -88,8 +91,8 @@ def test_segment_roundtrip(mb, gizmo_meta):
         assert res.get("status") == "completed"
         assert res["data"]["rows"][0][0] == 6
     finally:
-        mb.req("DELETE", f"/api/segment/{seg['id']}",
-               {"revision_message": "cleanup"})
+        mb.req("PUT", f"/api/segment/{seg['id']}",
+               {"archived": True, "revision_message": "cleanup"})
 
 
 def test_metric_v2_roundtrip(mb, gizmo_meta):

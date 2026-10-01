@@ -14,7 +14,7 @@ services:
     restart: "no"
 
   metabase:
-    image: metabase/metabase:v0.63.1.6
+    image: metabase/metabase:v0.63.19.1
     hostname: metabase
     depends_on:
       - postgres
@@ -61,7 +61,7 @@ services:
       retries: 5
 
   postgres:
-    image: postgres:17.4
+    image: postgres:17.10
     hostname: postgres
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -75,7 +75,7 @@ services:
   gizmosql:
     # Pinned (releases are near-weekly); a -slim and an LTS channel
     # (gizmodata/gizmosql-lts) also exist.
-    image: gizmodata/gizmosql:v1.35.1
+    image: gizmodata/gizmosql:v1.40.0
     hostname: gizmosql
     volumes:
       - type: bind
@@ -102,7 +102,7 @@ services:
   # on :1080, SMTP on :1025). Metabase email settings are configured by the
   # e2e suite.
   maildev:
-    image: maildev/maildev:2.2.1
+    image: maildev/maildev:3.0.0
     hostname: maildev
     ports:
       - "1080:1080"
