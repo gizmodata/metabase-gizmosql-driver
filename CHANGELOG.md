@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-01
+
 ### Fixed
 
 - Releases are now gated on the full test suite: `release.yaml` runs
@@ -31,7 +33,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Metabase), Keycloak 26.8, Postgres 17.10, MailDev 3.0.0; CI actions
   setup-java v6, setup-clojure 13.7.0, Clojure CLI 1.12.6.1673,
   clj-kondo 2026.08.04.
-
 - Compose services no longer set a fixed `container_name`, so the dev stack
   can coexist with other GizmoSQL containers on the same machine; docs and
   commands now use compose-scoped `podman compose logs/exec <service>`.
@@ -65,5 +66,6 @@ driver into a dedicated GizmoSQL driver.
   quack-on-demand, Apache Doris, StarRocks, and Dremio. The compose stack and
   e2e suite now target GizmoSQL only (base, TLS/mTLS, and OAuth profiles).
 
-[Unreleased]: https://github.com/gizmodata/metabase-gizmosql-driver/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/gizmodata/metabase-gizmosql-driver/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/gizmodata/metabase-gizmosql-driver/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/gizmodata/metabase-gizmosql-driver/releases/tag/v1.0.0

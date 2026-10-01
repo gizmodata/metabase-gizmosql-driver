@@ -1,4 +1,4 @@
-(defproject metabase-gizmosql-driver "1.0.0-SNAPSHOT"
+(defproject metabase-gizmosql-driver "1.0.1"
   :description "A Metabase driver for GizmoSQL — an Arrow Flight SQL server backed by DuckDB — using the GizmoSQL JDBC driver."
   :url "https://github.com/gizmodata/metabase-gizmosql-driver"
   :license {:name "Apache-2.0"
