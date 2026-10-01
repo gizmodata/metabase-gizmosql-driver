@@ -49,19 +49,29 @@ jobs:
             up -d --build
 
       - name: Wait for Metabase health
+        timeout-minutes: 12
         run: |
           for _ in $(seq 1 60); do
-            if curl -sf http://localhost:3000/api/health >/dev/null; then echo "healthy"; exit 0; fi
+            if curl -sf --max-time 5 http://localhost:3000/api/health >/dev/null; then echo "healthy"; exit 0; fi
             sleep 10
           done
-          echo "Metabase did not become healthy"; docker compose logs metabase | tail -50; exit 1
+          echo "::error::Metabase did not become healthy"
+          docker compose logs builder | tail -30
+          docker compose logs metabase | tail -50
+          exit 1
 
       - name: Seed connections, dashboards, data
         run: python scripts/metabase_setup.py
 
+      # E2E_STRICT turns every skip (e.g. a profile whose container never came
+      # up) into a failure, so this gate can't go green on partial coverage.
       - name: Run e2e suite
+        env:
+          E2E_STRICT: "1"
         run: python -m pytest tests/e2e -v --tb=short
 
       - name: Metabase logs on failure
         if: failure()
-        run: docker compose logs metabase | tail -100
+        run: |
+          docker compose logs builder | tail -30
+          docker compose logs metabase | tail -100

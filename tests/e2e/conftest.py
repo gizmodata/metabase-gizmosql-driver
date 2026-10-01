@@ -6,6 +6,7 @@ Optional stacks enable extra tests when present:
   - TLS profile (docker-compose.tls.yaml + scripts/generate_tls_certs.sh)
 """
 import json
+import os
 import socket
 import time
 import urllib.error
@@ -31,6 +32,19 @@ def load_env():
 
 
 ENV = load_env()
+
+# Set in CI (e2e.yml, which gates releases): a skipped test is a failure there,
+# so a profile that silently failed to start can't pass the gate.
+STRICT = os.environ.get("E2E_STRICT") == "1"
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    report = outcome.get_result()
+    if STRICT and report.skipped and not hasattr(report, "wasxfail"):
+        report.outcome = "failed"
+        report.longrepr = f"E2E_STRICT=1: skipped tests fail the gate: {report.longrepr}"
 
 
 def port_open(host, port, timeout=2):

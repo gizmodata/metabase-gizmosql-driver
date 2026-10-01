@@ -26,7 +26,7 @@ done
 podman compose logs builder 2>&1 | tail -5
 ```
 
-The builder exits when done; its last lines should show `Created /builder/target/metabase-gizmosql-driver-1.0.0-SNAPSHOT-standalone.jar`.
+The builder exits when done; its last lines should show `Created /builder/target/gizmosql.metabase-driver-standalone.jar`.
 
 ### 2. Restart Metabase
 

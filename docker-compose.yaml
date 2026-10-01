@@ -9,7 +9,7 @@ services:
       - .:/builder
     command: >
         sh -c "set -x &&
-              rm -f /builder/target/metabase-gizmosql-driver-1.0.0-SNAPSHOT-standalone.jar &&
+              rm -f /builder/target/gizmosql.metabase-driver-standalone.jar &&
               lein uberjar"
     restart: "no"
 
@@ -24,12 +24,12 @@ services:
       - jar-volume:/builder/target
       - /dev/urandom:/dev/random:ro
     command: >
-      sh -c "while [ ! -f /builder/target/metabase-gizmosql-driver-1.0.0-SNAPSHOT-standalone.jar ]; do
+      sh -c "while [ ! -f /builder/target/gizmosql.metabase-driver-standalone.jar ]; do
               echo 'Waiting for jar file...';
               sleep 5;
             done &&
             sleep 10 &&
-            cp /builder/target/metabase-gizmosql-driver-1.0.0-SNAPSHOT-standalone.jar /plugins/gizmosql-metabase-driver.jar &&
+            cp /builder/target/gizmosql.metabase-driver-standalone.jar /plugins/gizmosql-metabase-driver.jar &&
             echo 'Plugin copied, starting Metabase' &&
             exec /app/run_metabase.sh"
     ports:

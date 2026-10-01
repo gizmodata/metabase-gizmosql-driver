@@ -25,6 +25,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   need an `id`, segment definitions must be full queries, segments are
   archived via `PUT`, cache writes land after the response) and MailDev 3's
   `/api/email` endpoint.
+- The compose builder's jar now has a fixed name
+  (`gizmosql.metabase-driver-standalone.jar` via `:uberjar-name`). The compose
+  file hardcoded `…-1.0.0-SNAPSHOT-standalone.jar`, so bumping `project.clj`
+  left Metabase waiting for a jar that never appeared. The first gated v1.0.1
+  release run failed on exactly this and published nothing.
+- e2e gate hardening: the health wait uses `curl --max-time` with a step
+  timeout and dumps builder logs on failure. In CI (`E2E_STRICT=1`) a skipped
+  test counts as a failure, so a profile container that never started can't
+  pass the gate with partial coverage.
 
 ### Changed
 
